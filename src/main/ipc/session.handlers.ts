@@ -5,6 +5,7 @@ import type { SaveSessionPayload, SavedSessionWithStatus, IpcResult } from '../.
 import type { SessionStore } from '../storage/SessionStore'
 import type { CredentialStore } from '../storage/CredentialStore'
 import type { NamedCredentialStore } from '../storage/NamedCredentialStore'
+import { isValidHost, isValidPort, isValidUsername } from '../security'
 import { t } from '../../shared/i18n'
 
 export function registerSessionHandlers(
@@ -30,18 +31,24 @@ export function registerSessionHandlers(
 
   ipcMain.handle(IPC.SESSIONS.SAVE, (_event, payload: SaveSessionPayload): IpcResult => {
     try {
-      // Generate an id for new sessions
-      if (!payload.session.id) payload.session.id = uuidv4()
-      if (!payload.session.createdAt) payload.session.createdAt = Date.now()
+      const s = payload.session
+      if (!s || typeof s.name !== 'string' || s.name.length > 200) return { success: false, error: 'Invalid session data' }
+      if (!isValidHost(s.host)) return { success: false, error: t('errors.ssh.invalidHost') }
+      if (!isValidPort(s.port)) return { success: false, error: t('errors.ssh.invalidPort') }
+      if (!isValidUsername(s.username)) return { success: false, error: t('errors.ssh.invalidUser') }
+      if (!['password', 'privateKey', 'agent'].includes(s.authMethod)) return { success: false, error: 'Invalid auth method' }
 
-      sessionStore.save(payload.session)
+      if (!s.id) s.id = uuidv4()
+      if (!s.createdAt) s.createdAt = Date.now()
+
+      sessionStore.save(s)
 
       if (payload.saveCredential && payload.credentials) {
         const { password, privateKey, passphrase } = payload.credentials
-        if (payload.session.authMethod === 'password' && password) {
-          credentialStore.savePassword(payload.session.id, password)
-        } else if (payload.session.authMethod === 'privateKey' && privateKey) {
-          credentialStore.savePrivateKey(payload.session.id, privateKey, passphrase)
+        if (s.authMethod === 'password' && password) {
+          credentialStore.savePassword(s.id, password)
+        } else if (s.authMethod === 'privateKey' && privateKey) {
+          credentialStore.savePrivateKey(s.id, privateKey, passphrase)
         }
       }
       return { success: true }

@@ -20,7 +20,7 @@ interface StoredSettings {
 
 function defaultSessionsPath(): string {
   if (isPortable) return path.join(app.getPath('userData'), 'sessions.json')
-  return path.join(app.getPath('documents'), 'ssh-ai-client', 'sessions.json')
+  return path.join(app.getPath('documents'), 'jcoTerm', 'sessions.json')
 }
 
 export class SettingsStore {

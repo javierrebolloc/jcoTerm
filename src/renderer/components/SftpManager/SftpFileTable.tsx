@@ -54,7 +54,7 @@ function compareEntries(a: FileEntry, b: FileEntry, field: SortField, dir: SortD
   let cmp = 0
   switch (field) {
     case 'name':
-      cmp = a.name.localeCompare(b.name, 'es', { sensitivity: 'base' })
+      cmp = a.name.localeCompare(b.name, getLocale(), { sensitivity: 'base' })
       break
     case 'size':
       cmp = a.size - b.size

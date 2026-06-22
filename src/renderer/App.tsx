@@ -98,6 +98,11 @@ function AppContent(): JSX.Element {
 
   const { t } = useTranslation()
 
+  const confirmRef = useRef(confirm)
+  confirmRef.current = confirm
+  const tRef = useRef(t)
+  tRef.current = t
+
   const refreshSessions = useCallback(async (): Promise<void> => {
     const result = await window.electronAPI.sessions.list()
     if (result.success && result.data) setSessions(result.data)
@@ -161,8 +166,8 @@ function AppContent(): JSX.Element {
           dispatch({ type: 'ADD_TAB', tab: { sshSessionId: result.sessionId, label: session.name, savedSessionId: session.id } })
         } else if (result.hostKeyUnknown && result.fingerprint) {
           setConnectingSessionId(null)
-          const accepted = await confirm(
-            t('app.hostKeyConfirm', { host: session.host, port: session.port, fingerprint: result.fingerprint }),
+          const accepted = await confirmRef.current(
+            tRef.current('app.hostKeyConfirm', { host: session.host, port: session.port, fingerprint: result.fingerprint }),
           )
           if (accepted) {
             await window.electronAPI.ssh.acceptHostKey(session.host, session.port, result.fingerprint)
@@ -170,11 +175,11 @@ function AppContent(): JSX.Element {
             return
           }
         } else if (result.hostKeyMismatch && result.fingerprint) {
-          setConnectionError(t('app.hostKeyChanged', { host: session.host, fingerprint: result.fingerprint }))
+          setConnectionError(tRef.current('app.hostKeyChanged', { host: session.host, fingerprint: result.fingerprint }))
         } else if (result.credentialRequired) {
           setConnectingSession(session)
         } else {
-          setConnectionError(result.error ?? t('common.connectionError'))
+          setConnectionError(result.error ?? tRef.current('common.connectionError'))
         }
       } finally {
         setConnectingSessionId((prev) => prev === session.id ? null : prev)
@@ -271,7 +276,7 @@ function AppContent(): JSX.Element {
   // ── Session management ──────────────────────────────────────────────────────
 
   const handleDelete = useCallback(async (id: string, name: string): Promise<void> => {
-    if (!(await confirm(t('session.deleteConfirm', { name }), true))) return
+    if (!(await confirmRef.current(tRef.current('session.deleteConfirm', { name }), true))) return
     await window.electronAPI.sessions.delete(id)
     await refreshSessions()
   }, [refreshSessions])

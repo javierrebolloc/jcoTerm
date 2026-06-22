@@ -118,6 +118,10 @@ export function registerSshHandlers(
           manager.removeSession(id)
         })
 
+        session.on('error', (err: Error) => {
+          log.warn(`[ssh] Session ${sessionId} error: ${sanitizeSshError(err.message)}`)
+        })
+
         connectHost = config.host
         connectPort = config.port
 
@@ -153,6 +157,7 @@ export function registerSshHandlers(
 
   ipcMain.on(IPC.SSH.INPUT, (_event, { sessionId, data }: SshInputPayload) => {
     if (!isValidSessionId(sessionId)) return
+    if (typeof data !== 'string' || data.length > 65536) return
     manager.getSession(sessionId)?.write(data)
   })
 

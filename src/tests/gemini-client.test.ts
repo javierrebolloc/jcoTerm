@@ -76,12 +76,13 @@ describe('GeminiClient', () => {
       expect(result.reply).toBe('Hola mundo')
     })
 
-    it('sends POST to correct URL with the API key', async () => {
+    it('sends POST to correct URL with the API key in header', async () => {
       mockFetch.mockResolvedValueOnce(makeOkResponse('ok'))
       await client.sendMessage('my-api-key', 'q', '')
-      const [url] = mockFetch.mock.calls[0] as [string, ...unknown[]]
+      const [url, opts] = mockFetch.mock.calls[0] as [string, RequestInit]
       expect(url).toContain('gemini-2.0-flash-lite:generateContent')
-      expect(url).toContain('key=my-api-key')
+      expect(url).not.toContain('key=')
+      expect((opts.headers as Record<string, string>)['x-goog-api-key']).toBe('my-api-key')
     })
 
     it('includes terminal context in the request body', async () => {

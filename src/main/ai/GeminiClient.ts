@@ -158,7 +158,7 @@ export class GeminiClient implements AIProvider {
   ) {}
 
   async sendMessage(apiKey: string, userMessage: string, redactedContext: string, maxTokens: number = 1024, history?: ChatHistoryMessage[]): Promise<AIProviderResponse> {
-    const url = `${BASE_URL}/${this.model}:generateContent?key=${apiKey}`
+    const url = `${BASE_URL}/${this.model}:generateContent`
     const maxRetries = this.retryDelays.length
 
     const body = JSON.stringify({
@@ -173,14 +173,14 @@ export class GeminiClient implements AIProvider {
       if (attempt > 0) {
         const defaultDelay = this.retryDelays[attempt - 1] ?? this.retryDelays[this.retryDelays.length - 1]
         const delay = nextRetryDelayMs ?? defaultDelay
-        log.warn(`[gemini] Reintento ${attempt}/${maxRetries} en ${Math.round(delay / 1000)}s...`)
+        log.warn(`[gemini] Retry ${attempt}/${maxRetries} in ${Math.round(delay / 1000)}s...`)
         await sleep(delay)
         nextRetryDelayMs = null
       }
 
       const response = await globalThis.fetch(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
         body,
       })
 
@@ -249,7 +249,7 @@ export class GeminiClient implements AIProvider {
   }
 
   async sendMessageStream(apiKey: string, userMessage: string, redactedContext: string, callbacks: AIStreamCallbacks, maxTokens: number = 1024, history?: ChatHistoryMessage[]): Promise<void> {
-    const url = `${BASE_URL}/${this.model}:streamGenerateContent?alt=sse&key=${apiKey}`
+    const url = `${BASE_URL}/${this.model}:streamGenerateContent?alt=sse`
 
     const body = JSON.stringify({
       systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
@@ -260,7 +260,7 @@ export class GeminiClient implements AIProvider {
     try {
       const response = await globalThis.fetch(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
         body,
       })
 
