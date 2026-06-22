@@ -156,11 +156,12 @@ describe('credential.handlers', () => {
 
   describe('credentials:delete', () => {
     it('deletes from both stores with a valid id', () => {
+      const validId = 'aaaabbbb-0000-4000-a000-000000000001'
       const handler = captureHandler(IPC.CREDENTIALS.DELETE)
-      const result = handler({}, 'some-id') as { success: boolean }
+      const result = handler({}, validId) as { success: boolean }
       expect(result.success).toBe(true)
-      expect(namedStore.delete).toHaveBeenCalledWith('some-id')
-      expect(credStore.deleteCredential).toHaveBeenCalledWith('some-id')
+      expect(namedStore.delete).toHaveBeenCalledWith(validId)
+      expect(credStore.deleteCredential).toHaveBeenCalledWith(validId)
     })
 
     it('rejects non-string id', () => {
@@ -178,11 +179,12 @@ describe('credential.handlers', () => {
     })
 
     it('returns error when store throws during deletion', () => {
+      const validId = 'aaaabbbb-0000-4000-a000-000000000001'
       namedStore.delete.mockImplementation(() => {
         throw new Error('delete failed')
       })
       const handler = captureHandler(IPC.CREDENTIALS.DELETE)
-      const result = handler({}, 'valid-id') as { success: boolean; error: string }
+      const result = handler({}, validId) as { success: boolean; error: string }
       expect(result.success).toBe(false)
       expect(result.error).toBe('delete failed')
     })

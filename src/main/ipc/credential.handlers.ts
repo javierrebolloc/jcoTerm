@@ -36,7 +36,7 @@ export function registerCredentialHandlers(
   })
 
   ipcMain.handle(IPC.CREDENTIALS.DELETE, (_event, id: unknown): IpcResult => {
-    if (typeof id !== 'string' || !id) return { success: false, error: t('errors.invalidId') }
+    if (!isValidSessionId(id)) return { success: false, error: t('errors.invalidId') }
     try {
       namedCredentialStore.delete(id)
       credentialStore.deleteCredential(id)

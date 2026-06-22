@@ -191,6 +191,7 @@ export default function SftpManager({ sessions }: SftpManagerProps): JSX.Element
       setCredError(null)
     } else {
       rlog('error', 'Connection failed: %s', result.error)
+      setErrorToast(result.error ?? t('common.connectionError'))
     }
     setConnecting(false)
   }, [loadRemoteDir])
@@ -384,7 +385,7 @@ export default function SftpManager({ sessions }: SftpManagerProps): JSX.Element
                 className={styles.tabClose}
                 onClick={(e) => { e.stopPropagation(); void handleDisconnectTab(tab.id) }}
                 title={t('sftp.disconnectTab')}
-              >x</button>
+              >✕</button>
             </div>
           ))}
         </div>
@@ -458,7 +459,7 @@ export default function SftpManager({ sessions }: SftpManagerProps): JSX.Element
                 <p className={styles.credName}>{credentialPrompt.name}</p>
                 <p className={styles.credHost}>{credentialPrompt.host}:{credentialPrompt.port}</p>
               </div>
-              <button className={styles.credClose} onClick={() => setCredentialPrompt(null)}>x</button>
+              <button className={styles.credClose} onClick={() => setCredentialPrompt(null)}>✕</button>
             </div>
             <form
               className={styles.credForm}
@@ -498,9 +499,9 @@ export default function SftpManager({ sessions }: SftpManagerProps): JSX.Element
       )}
 
       {errorToast && (
-        <div className={styles.errorToast}>
+        <div className={styles.errorToast} role="alert">
           <span>{errorToast}</span>
-          <button className={styles.errorToastClose} onClick={() => setErrorToast(null)}>x</button>
+          <button className={styles.errorToastClose} onClick={() => setErrorToast(null)}>✕</button>
         </div>
       )}
     </div>

@@ -201,7 +201,7 @@ app.whenReady().then(() => {
       })
       const folders: SavedFolder[] = folderStore.list()
       const exportData = { version: 1, exportedAt: new Date().toISOString(), sessions, folders }
-      fs.writeFileSync(result.filePath, JSON.stringify(exportData, null, 2), 'utf-8')
+      fs.writeFileSync(result.filePath, JSON.stringify(exportData, null, 2), { encoding: 'utf-8', mode: 0o600 })
       return { success: true, data: { filePath: result.filePath } }
     } catch (err) {
       return { success: false, error: (err as Error).message }

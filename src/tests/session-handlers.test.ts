@@ -319,10 +319,11 @@ describe('session.handlers', () => {
       registerSessionHandlers(sessionStore, credentialStore, namedCredentialStore)
       const handler = captureHandler('sessions:delete')
 
-      const result = handler(null, 'sess-1') as IpcResult
+      const validId = 'aaaabbbb-0000-4000-a000-000000000001'
+      const result = handler(null, validId) as IpcResult
       expect(result.success).toBe(true)
-      expect(sessionStore.delete).toHaveBeenCalledWith('sess-1')
-      expect(credentialStore.deleteCredential).toHaveBeenCalledWith('sess-1')
+      expect(sessionStore.delete).toHaveBeenCalledWith(validId)
+      expect(credentialStore.deleteCredential).toHaveBeenCalledWith(validId)
     })
 
     it('devuelve error con ID inválido (no string)', () => {
@@ -362,7 +363,8 @@ describe('session.handlers', () => {
       registerSessionHandlers(sessionStore, credentialStore, namedCredentialStore)
       const handler = captureHandler('sessions:delete')
 
-      const result = handler(null, 'sess-1') as IpcResult
+      const validId = 'aaaabbbb-0000-4000-a000-000000000001'
+      const result = handler(null, validId) as IpcResult
       expect(result.success).toBe(false)
       expect(result.error).toBe('fallo al eliminar')
     })

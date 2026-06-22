@@ -23,7 +23,13 @@ export default function LockScreen({ onUnlocked }: LockScreenProps): JSX.Element
     if (hasPassword !== null) inputRef.current?.focus()
   }, [hasPassword])
 
-  if (hasPassword === null) return null
+  if (hasPassword === null) return (
+    <div className={styles.lockScreen}>
+      <div className={styles.card}>
+        <h1 className={styles.appName}>jcoTerm</h1>
+      </div>
+    </div>
+  )
 
   const handleUnlock = async (): Promise<void> => {
     if (!password) return

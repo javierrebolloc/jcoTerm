@@ -230,7 +230,7 @@ export default function SftpFilePane({
             style={{ flex: 1, fontSize: 'var(--font-size-sm)' }}
           />
           <button className={styles.toolBtn} onClick={handleMkdirSubmit}>{t('sftp.toolbar.create')}</button>
-          <button className={styles.toolBtn} onClick={() => { setShowMkdirInput(false); setMkdirName('') }}>x</button>
+          <button className={styles.toolBtn} onClick={() => { setShowMkdirInput(false); setMkdirName('') }}>✕</button>
         </div>
       )}
 

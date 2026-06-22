@@ -34,7 +34,7 @@ export abstract class JsonFileStore<T extends { id: string }> {
     if (!this.dirty || !this.cache) return
     fs.mkdirSync(path.dirname(this.filePath), { recursive: true })
     const tmp = this.filePath + '.tmp'
-    fs.writeFileSync(tmp, JSON.stringify(this.cache, null, 2), 'utf-8')
+    fs.writeFileSync(tmp, JSON.stringify(this.cache, null, 2), { encoding: 'utf-8', mode: 0o600 })
     fs.renameSync(tmp, this.filePath)
     this.dirty = false
   }

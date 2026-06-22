@@ -353,13 +353,13 @@ function AppContent(): JSX.Element {
           className={`${styles.topBtn} ${viewMode === 'terminal' ? styles.topBtnActive : ''}`}
           onClick={() => setViewMode('terminal')}
         >
-          SSH
+          {t('app.ssh')}
         </button>
         <button
           className={`${styles.topBtn} ${viewMode === 'sftp' ? styles.topBtnActive : ''}`}
           onClick={() => setViewMode('sftp')}
         >
-          SFTP
+          {t('app.sftp')}
         </button>
 
         <div className={styles.topSpacer} />
@@ -478,13 +478,16 @@ export default function App(): JSX.Element {
 
   useEffect(() => {
     if (phase !== 'splash') return
-    void window.electronAPI.settings.get().then((result) => {
-      if (result.success && result.data?.language) {
-        setInitialLocale(result.data.language)
-      }
+    let settled = false
+    const minDelay = new Promise<void>((r) => setTimeout(r, 2000))
+    const loadSettings = window.electronAPI.settings.get().then((result) => {
+      if (result.success && result.data?.language) setInitialLocale(result.data.language)
+    }).catch(() => {})
+    void Promise.all([minDelay, loadSettings]).then(() => {
+      if (!settled) { settled = true; setPhase('lock') }
     })
-    const timer = setTimeout(() => setPhase('lock'), 5000)
-    return () => clearTimeout(timer)
+    const maxTimer = setTimeout(() => { if (!settled) { settled = true; setPhase('lock') } }, 5000)
+    return () => { settled = true; clearTimeout(maxTimer) }
   }, [phase])
 
   if (phase === 'splash') return <SplashScreen />

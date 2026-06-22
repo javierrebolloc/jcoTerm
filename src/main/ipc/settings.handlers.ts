@@ -45,8 +45,19 @@ export function registerSettingsHandlers(
         }
         if (anthropicApiKey) credentialStore.savePassword('__anthropic_api_key__', anthropicApiKey)
         if (geminiApiKey) credentialStore.savePassword('__gemini_api_key__', geminiApiKey)
-        if (Object.keys(rest).length > 0) settingsStore.set(rest)
-        if (rest.language) setLocale(rest.language as 'en' | 'es')
+
+        const ALLOWED_KEYS = new Set([
+          'fontSize', 'fontFamily', 'cursorStyle', 'cursorBlink', 'scrollback',
+          'aiProvider', 'anthropicModel', 'geminiModel', 'aiContextLines', 'aiHistoryLength', 'language',
+        ])
+        const safeRest: Record<string, unknown> = {}
+        for (const [k, v] of Object.entries(rest)) {
+          if (ALLOWED_KEYS.has(k) && v !== undefined) safeRest[k] = v
+        }
+        if (Object.keys(safeRest).length > 0) settingsStore.set(safeRest)
+        if (safeRest.language && (safeRest.language === 'en' || safeRest.language === 'es')) {
+          setLocale(safeRest.language)
+        }
         return { success: true }
       } catch (err) {
         return { success: false, error: (err as Error).message }

@@ -21,6 +21,9 @@ export function registerFolderHandlers(folderStore: FolderStore): void {
 
   ipcMain.handle(IPC.FOLDERS.SAVE, (_event, folder: SavedFolder): IpcResult => {
     try {
+      if (typeof folder.name !== 'string' || folder.name.length === 0 || folder.name.length > 200) {
+        return { success: false, error: t('errors.invalidId') }
+      }
       if (!folder.id) folder.id = uuidv4()
       log.info('folders:save id=%s name=%s', folder.id, sanitizeForLog(folder.name))
       folderStore.save(folder)

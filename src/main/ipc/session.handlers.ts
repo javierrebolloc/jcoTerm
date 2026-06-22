@@ -5,7 +5,7 @@ import type { SaveSessionPayload, SavedSessionWithStatus, IpcResult } from '../.
 import type { SessionStore } from '../storage/SessionStore'
 import type { CredentialStore } from '../storage/CredentialStore'
 import type { NamedCredentialStore } from '../storage/NamedCredentialStore'
-import { isValidHost, isValidPort, isValidUsername } from '../security'
+import { isValidHost, isValidPort, isValidUsername, isValidSessionId } from '../security'
 import { t } from '../../shared/i18n'
 
 export function registerSessionHandlers(
@@ -58,7 +58,7 @@ export function registerSessionHandlers(
   })
 
   ipcMain.handle(IPC.SESSIONS.DELETE, (_event, id: unknown): IpcResult => {
-    if (typeof id !== 'string' || !id) return { success: false, error: t('errors.session.invalidSessionId') }
+    if (!isValidSessionId(id)) return { success: false, error: t('errors.session.invalidSessionId') }
     try {
       sessionStore.delete(id)
       credentialStore.deleteCredential(id)
