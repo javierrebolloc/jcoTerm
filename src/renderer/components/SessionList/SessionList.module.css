@@ -1,0 +1,217 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-sm) var(--space-md);
+  border-bottom: 1px solid var(--color-border-muted);
+  flex-shrink: 0;
+}
+
+.title {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text-secondary);
+}
+
+.newBtn {
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 14px;
+  padding: 1px 4px;
+  border-radius: var(--radius-sm);
+}
+
+.newBtn:hover {
+  background: var(--color-bg-hover);
+  color: var(--color-text-primary);
+}
+
+.list {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-xs) 0;
+}
+
+.hint {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  text-align: center;
+  padding: var(--space-lg) var(--space-md);
+  line-height: 1.6;
+}
+
+/* ── Folder sections ── */
+
+.folderSection {
+  margin-bottom: 2px;
+}
+
+.folderHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 2px var(--space-sm) 2px 0;
+  border-radius: var(--radius-sm);
+}
+
+.folderHeader:hover { background: var(--color-bg-hover); }
+
+.folderToggle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  flex: 1;
+  background: transparent;
+  text-align: left;
+  padding: 3px var(--space-sm);
+  min-width: 0;
+  cursor: pointer;
+}
+
+.folderArrow {
+  font-size: 9px;
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+  width: 10px;
+}
+
+.folderName {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+
+.folderNameInput {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-primary);
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-accent);
+  border-radius: 2px;
+  padding: 0 4px;
+  flex: 1;
+  min-width: 0;
+  font-family: inherit;
+  outline: none;
+}
+
+.folderCount {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+.folderActions {
+  display: flex;
+  gap: 1px;
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.folderHeader:hover .folderActions { opacity: 1; }
+
+.folderActionBtn {
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 11px;
+  padding: 2px 4px;
+  border-radius: var(--radius-sm);
+}
+
+.folderActionBtn:hover { background: var(--color-bg-elevated); color: var(--color-text-primary); }
+.folderDeleteBtn:hover { color: var(--color-danger); background: rgba(248,81,73,0.1); }
+
+.folderItems {
+  padding-left: var(--space-md);
+}
+
+.emptyFolder {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  padding: var(--space-xs) var(--space-sm);
+}
+
+/* ── Folder dragging ── */
+
+.draggingFolder { opacity: 0.35; }
+
+/* ── Root drop zone ── */
+
+.rootZone {
+  min-height: 4px;
+  border-radius: var(--radius-sm);
+  transition: background 0.1s;
+}
+
+/* ── Drag over highlight ── */
+
+.dragOver {
+  background: rgba(88,166,255,0.08);
+  outline: 1px dashed var(--color-accent);
+  outline-offset: -1px;
+  border-radius: var(--radius-sm);
+}
+
+/* ── Context menu ── */
+
+.contextMenu {
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+  min-width: 176px;
+  padding: 4px 0;
+  z-index: 9999;
+}
+
+.contextItem {
+  display: block;
+  width: 100%;
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  text-align: left;
+  padding: 6px var(--space-md);
+  cursor: pointer;
+  border-radius: 0;
+}
+
+.contextItem:hover {
+  background: var(--color-bg-hover);
+  color: var(--color-text-primary);
+}
+
+/* ── New folder inline ── */
+
+.newFolderRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: 3px var(--space-sm);
+  margin: 2px 0;
+}
+
+.newFolderInput {
+  flex: 1;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-primary);
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-accent);
+  border-radius: 2px;
+  padding: 2px var(--space-xs);
+  font-family: inherit;
+  outline: none;
+}

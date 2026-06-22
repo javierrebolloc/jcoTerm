@@ -1,0 +1,141 @@
+/* ── Transfer queue ── */
+
+.queue {
+  background: var(--color-bg-surface);
+  border-top: 1px solid var(--color-border);
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+/* ── Header ── */
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-xs) var(--space-md);
+  border-bottom: 1px solid var(--color-border-muted);
+  flex-shrink: 0;
+}
+
+.title {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text-muted);
+}
+
+.clearBtn {
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  padding: 2px var(--space-sm);
+}
+
+.clearBtn:hover {
+  color: var(--color-text-secondary);
+  background: var(--color-bg-hover);
+}
+
+/* ── Transfer list ── */
+
+.list {
+  display: flex;
+  flex-direction: column;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-xs) var(--space-md);
+  border-bottom: 1px solid var(--color-border-muted);
+  font-size: var(--font-size-sm);
+}
+
+.item:last-child {
+  border-bottom: none;
+}
+
+/* ── Type icon ── */
+
+.typeIcon {
+  flex-shrink: 0;
+  width: 16px;
+  text-align: center;
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+}
+
+.typeUpload {
+  color: var(--color-accent);
+}
+
+.typeDownload {
+  color: var(--color-success);
+}
+
+/* ── File name ── */
+
+.fileName {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--color-text-primary);
+}
+
+/* ── Progress bar ── */
+
+.progressWrap {
+  width: 100px;
+  height: 4px;
+  background: var(--color-bg-hover);
+  border-radius: 2px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.progressBar {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.2s ease;
+}
+
+.progressActive {
+  background: var(--color-accent);
+}
+
+.progressCompleted {
+  background: var(--color-success);
+}
+
+.progressError {
+  background: var(--color-danger);
+}
+
+/* ── Status text ── */
+
+.statusText {
+  font-size: var(--font-size-xs);
+  white-space: nowrap;
+  flex-shrink: 0;
+  min-width: 70px;
+  text-align: right;
+}
+
+.statusPending { color: var(--color-text-muted); }
+.statusActive { color: var(--color-accent); }
+.statusCompleted { color: var(--color-success); }
+.statusError { color: var(--color-danger); }
+
+/* ── Empty ── */
+
+.empty {
+  padding: var(--space-md);
+  text-align: center;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}

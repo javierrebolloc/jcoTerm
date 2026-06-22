@@ -1,0 +1,111 @@
+.bar {
+  display: flex;
+  align-items: flex-end;
+  overflow-x: auto;
+  overflow-y: hidden;
+  background: var(--color-bg-surface);
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+  height: 34px;
+}
+
+.bar::-webkit-scrollbar { height: 3px; }
+
+.tab {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: 0 var(--space-md);
+  height: 100%;
+  min-width: 80px;
+  max-width: 160px;
+  cursor: pointer;
+  user-select: none;
+  border-right: 1px solid var(--color-border-muted);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  white-space: nowrap;
+  position: relative;
+  transition: background 0.1s, color 0.1s;
+}
+
+.tab:hover {
+  background: var(--color-bg-hover);
+  color: var(--color-text-primary);
+}
+
+.active {
+  background: var(--color-bg-base);
+  color: var(--color-text-primary);
+  border-bottom: 2px solid var(--color-accent);
+}
+
+.label {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.closeBtn {
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 10px;
+  padding: 1px 3px;
+  border-radius: 2px;
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.tab:hover .closeBtn,
+.active .closeBtn {
+  opacity: 1;
+}
+
+.closeBtn:hover {
+  background: rgba(248,81,73,0.2);
+  color: var(--color-danger);
+}
+
+/* ── Context menu ── */
+
+.contextMenu {
+  position: fixed;
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+  min-width: 200px;
+  padding: 4px 0;
+  z-index: 9999;
+}
+
+.contextItem {
+  display: block;
+  width: 100%;
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  text-align: left;
+  padding: 6px var(--space-md);
+  cursor: pointer;
+}
+
+.contextItem:hover:not(:disabled) {
+  background: var(--color-bg-hover);
+  color: var(--color-text-primary);
+}
+
+.contextItem:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.contextItemDanger { color: var(--color-danger); }
+.contextItemDanger:hover:not(:disabled) { background: rgba(248,81,73,0.1); color: var(--color-danger); }
+
+.contextSep {
+  height: 1px;
+  background: var(--color-border-muted);
+  margin: 4px 0;
+}

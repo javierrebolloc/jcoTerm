@@ -1,0 +1,130 @@
+/* ── Table ── */
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-sm);
+  table-layout: fixed;
+}
+
+/* ── Header ── */
+
+.thead {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.headerRow {
+  background: var(--color-bg-surface);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.headerCell {
+  padding: var(--space-xs) var(--space-sm);
+  text-align: left;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.headerCell:hover {
+  color: var(--color-text-secondary);
+}
+
+.sortIndicator {
+  margin-left: 3px;
+  font-size: 9px;
+}
+
+/* Column widths */
+.colIcon { width: 28px; }
+.colName { /* flex remaining */ }
+.colSize { width: 80px; text-align: right; }
+.colDate { width: 130px; }
+.colPerms { width: 90px; font-family: var(--font-mono); }
+
+/* ── Body ── */
+
+.row {
+  border-bottom: 1px solid var(--color-border-muted);
+  cursor: pointer;
+  transition: background 0.08s;
+}
+
+.row:hover {
+  background: var(--color-bg-hover);
+}
+
+.rowSelected {
+  background: rgba(88, 166, 255, 0.1);
+}
+
+.rowSelected:hover {
+  background: rgba(88, 166, 255, 0.15);
+}
+
+.cell {
+  padding: 3px var(--space-sm);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--color-text-primary);
+  vertical-align: middle;
+}
+
+.cellIcon {
+  padding: 3px var(--space-xs);
+  text-align: center;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.cellSize {
+  text-align: right;
+  color: var(--color-text-secondary);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+}
+
+.cellDate {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-xs);
+}
+
+.cellPerms {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+/* ── Name styles ── */
+
+.nameDir {
+  color: var(--color-accent);
+  font-weight: 500;
+}
+
+.nameFile {
+  color: var(--color-text-primary);
+}
+
+/* ── Inline rename ── */
+
+.renameInput {
+  background: var(--color-bg-elevated);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-sm);
+  padding: 1px var(--space-xs);
+  font-size: var(--font-size-sm);
+  font-family: inherit;
+  width: 100%;
+  outline: none;
+}

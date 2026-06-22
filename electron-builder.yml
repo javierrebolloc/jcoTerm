@@ -1,0 +1,20 @@
+appId: com.jcoterm.app
+productName: jcoTerm
+directories:
+  buildResources: assets
+  output: release
+files:
+  - out/**/*
+forceCodeSigning: false
+win:
+  signAndEditExecutable: false
+  target:
+    - target: nsis
+      arch: x64
+    - target: dir
+      arch: x64
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
