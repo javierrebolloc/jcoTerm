@@ -1,69 +1,69 @@
-# testing.md — Estrategia de tests
+# testing.md — Testing Strategy
 
-## Comandos
+## Commands
 
 ```bash
-npm test              # Vitest (unitarios + integración), una sola vez
-npm run test:watch    # Vitest en modo watch
-npm run test:e2e      # Playwright E2E contra la app Electron compilada
+npm test              # Vitest (unit + integration), single run
+npm run test:watch    # Vitest in watch mode
+npm run test:e2e      # Playwright E2E against the compiled Electron app
 ```
 
-## Herramientas
+## Tools
 
-| Herramienta | Uso | Justificación |
+| Tool | Usage | Justification |
 |---|---|---|
-| Vitest | Unitarios e integración | Compatible con electron-vite, más rápido que Jest, API idéntica |
-| Playwright | E2E con Electron | Soporte oficial Electron, reemplaza al deprecado Spectron |
+| Vitest | Unit and integration | Compatible with electron-vite, faster than Jest, identical API |
+| Playwright | E2E with Electron | Official Electron support, replaces the deprecated Spectron |
 
-## Cobertura por fase
+## Coverage by Phase
 
-### Fase 1 — Terminal SSH básica
-
-**Vitest:**
-- `redactor.test.ts` — todos los patrones de redacción (cobertura prioritaria)
-- `ssh-handlers.test.ts` — manejo de errores en connect/disconnect/input (ssh2 mockeado)
-- `ssh-session.test.ts` — eventos de output, reconexión, cierre limpio
-
-**Playwright:**
-- `app.spec.ts` — la app arranca, muestra la UI principal sin errores
-
-### Fase 2 — Sesiones guardadas
+### Phase 1 — Basic SSH Terminal
 
 **Vitest:**
-- `session-store.test.ts` — save/load/delete, sesión inexistente
-- `settings-store.test.ts` — get/set de preferencias, valores por defecto
+- `redactor.test.ts` — all redaction patterns (priority coverage)
+- `ssh-handlers.test.ts` — error handling in connect/disconnect/input (ssh2 mocked)
+- `ssh-session.test.ts` — output events, reconnection, clean shutdown
 
 **Playwright:**
-- `sessions.spec.ts` — abrir modal de nueva sesión, guardar, ver en lista, doble clic para conectar (SSH mockeado)
+- `app.spec.ts` — the app starts, shows the main UI without errors
 
-### Fase 3 — Panel de IA
+### Phase 2 — Saved Sessions
 
 **Vitest:**
-- `ai-context.test.ts` — construcción del snapshot de terminal, límites de caracteres, selección manual
-- `anthropic-client.test.ts` — manejo de errores HTTP, timeout, API key inválida (fetch mockeado)
-- `redactor.test.ts` (ampliado) — combinaciones de secretos en contexto real de terminal
+- `session-store.test.ts` — save/load/delete, nonexistent session
+- `settings-store.test.ts` — get/set preferences, default values
 
 **Playwright:**
-- `ai-panel.spec.ts` — abrir panel IA, introducir pregunta, ver redaction preview, confirmar envío, recibir respuesta mockeada
+- `sessions.spec.ts` — open new session modal, save, see in list, double-click to connect (SSH mocked)
 
-## Convenciones de tests
+### Phase 3 — AI Panel
 
-- **Sin credenciales reales.** ssh2 y `@anthropic-ai/sdk` siempre mockeados con `vi.mock()`.
-- **Sin red real.** Usar `vi.mock` para `fetch` o el cliente Anthropic en unitarios; interceptar con Playwright para E2E.
-- **CredentialStore con encryption key inyectada en tests.** Se pasa un `crypto.randomBytes(32)` como clave AES-256-GCM.
-- **Nombre de tests:** `describe('NombreModulo') > it('qué hace cuando qué condición')`.
-- **Un assert principal por test.** Varios asserts solo si verifican la misma invariante.
-- **Tests de seguridad primero:** redactor y session-store tienen prioridad de cobertura.
+**Vitest:**
+- `ai-context.test.ts` — terminal snapshot construction, character limits, manual selection
+- `anthropic-client.test.ts` — HTTP error handling, timeout, invalid API key (fetch mocked)
+- `redactor.test.ts` (extended) — combinations of secrets in real terminal context
 
-## Test de invariante arquitectural (seguridad)
+**Playwright:**
+- `ai-panel.spec.ts` — open AI panel, enter question, see redaction preview, confirm send, receive mocked response
 
-En `src/tests/architecture.test.ts` (Fase 3):
-- Verificar (analizando el grafo de imports o mediante mocks) que no existe ninguna ruta de código que conecte `AnthropicClient.sendMessage` con `SshSession.write`.
-- Este test actúa como red de seguridad contra regresiones accidentales en la restricción de solo lectura.
+## Test Conventions
 
-## Configuración de ficheros
+- **No real credentials.** ssh2 and `@anthropic-ai/sdk` always mocked with `vi.mock()`.
+- **No real network.** Use `vi.mock` for `fetch` or the Anthropic client in unit tests; intercept with Playwright for E2E.
+- **CredentialStore with encryption key injected in tests.** A `crypto.randomBytes(32)` is passed as AES-256-GCM key.
+- **Test naming:** `describe('ModuleName') > it('what it does when what condition')`.
+- **One main assertion per test.** Multiple assertions only if verifying the same invariant.
+- **Security tests first:** redactor and session-store have coverage priority.
 
-- `vitest.config.ts` en la raíz: entorno `node` para tests de main, `jsdom` para tests de renderer.
-- `playwright.config.ts`: `use: { channel: 'electron' }`, apunta al binario compilado por electron-vite.
-- Directorio de tests unitarios: `src/tests/`.
-- Directorio de tests E2E: `e2e/`.
+## Architectural Invariant Test (Security)
+
+In `src/tests/architecture.test.ts` (Phase 3):
+- Verify (by analyzing the import graph or via mocks) that no code path exists connecting `AnthropicClient.sendMessage` with `SshSession.write`.
+- This test acts as a safety net against accidental regressions in the read-only restriction.
+
+## File Configuration
+
+- `vitest.config.ts` at the root: `node` environment for main tests, `jsdom` for renderer tests.
+- `playwright.config.ts`: `use: { channel: 'electron' }`, points to the binary compiled by electron-vite.
+- Unit test directory: `src/tests/`.
+- E2E test directory: `e2e/`.

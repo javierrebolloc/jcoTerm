@@ -1,66 +1,66 @@
 # CLAUDE.md — SSH AI Client
 
-Lee este fichero al inicio de cada sesión antes de tocar código.
+Read this file at the start of each session before touching any code.
 
-## Qué es este proyecto
+## What is this project
 
-Cliente SSH de escritorio para Windows (Electron + TypeScript) con un panel lateral de chat con IA (Anthropic). La IA puede leer el contenido visible de la terminal cuando el usuario pregunta, pero **nunca puede escribir en la sesión SSH ni ejecutar comandos**. Esta restricción está garantizada por arquitectura.
+Desktop SSH client for Windows (Electron + TypeScript) with an AI chat side panel (Anthropic). The AI can read the visible terminal content when the user asks, but **it can never write to the SSH session or execute commands**. This restriction is guaranteed by architecture.
 
 ## Stack
 
-| Capa | Tecnología |
+| Layer | Technology |
 |---|---|
 | Framework | Electron |
-| Lenguaje | TypeScript (strict) |
+| Language | TypeScript (strict) |
 | Build | electron-vite |
 | UI | React + CSS Modules |
 | Terminal | xterm.js |
 | SSH | ssh2 |
-| Almacenamiento seguro | AES-256-GCM (clave derivada de lock password via PBKDF2) |
-| Config no sensible | electron-store |
-| IA | @anthropic-ai/sdk → Anthropic API |
-| Empaquetado | electron-builder |
-| Tests unitarios | Vitest |
-| Tests E2E | Playwright (soporte oficial Electron) |
+| Secure storage | AES-256-GCM (key derived from lock password via PBKDF2) |
+| Non-sensitive config | electron-store |
+| AI | @anthropic-ai/sdk → Anthropic API |
+| Packaging | electron-builder |
+| Unit tests | Vitest |
+| E2E tests | Playwright (official Electron support) |
 | Linting | ESLint + Prettier |
 
-## Comandos clave
+## Key commands
 
 ```bash
-npm run dev          # Electron en modo desarrollo (HMR)
-npm run build        # Build de producción
-npm run dist         # Build + empaquetado instalador Windows
+npm run dev          # Electron in development mode (HMR)
+npm run build        # Production build
+npm run dist         # Build + Windows installer packaging
 npm run lint         # ESLint
 npm run format       # Prettier
-npm test             # Vitest (unitarios + integración)
+npm test             # Vitest (unit + integration)
 npm run test:e2e     # Playwright E2E
-npm run test:watch   # Vitest en modo watch
+npm run test:watch   # Vitest in watch mode
 ```
 
-## Reglas de seguridad inviolables
+## Inviolable security rules
 
-1. **SSH y credenciales SOLO en el proceso main.** El renderer nunca toca credenciales en claro.
-2. **contextIsolation: true, nodeIntegration: false** en toda BrowserWindow.
-3. **La IA es estrictamente de solo lectura.** No existe ningún canal IPC que conecte output de IA con input SSH. Esto se verifica en código y en tests.
-4. **Credenciales cifradas con AES-256-GCM**, clave derivada de la lock password con PBKDF2. La clave solo existe en memoria tras el desbloqueo. Nunca en texto plano en disco, nunca en logs. Portable entre máquinas.
-5. **Redacción de secretos antes de enviar contexto a la IA.** El usuario ve qué se enviará antes de confirmar.
-6. **Validar y sanitizar todos los inputs IPC en el main** antes de usarlos.
+1. **SSH and credentials ONLY in the main process.** The renderer never touches credentials in the clear.
+2. **contextIsolation: true, nodeIntegration: false** on every BrowserWindow.
+3. **The AI is strictly read-only.** There is no IPC channel connecting AI output to SSH input. This is verified in code and in tests.
+4. **Credentials encrypted with AES-256-GCM**, key derived from the lock password with PBKDF2. The key only exists in memory after unlock. Never in plaintext on disk, never in logs. Portable across machines.
+5. **Redaction of secrets before sending context to the AI.** The user sees what will be sent before confirming.
+6. **Validate and sanitize all IPC inputs in main** before using them.
 
-## Documentación del agente (.claude/)
+## Agent documentation (.claude/)
 
-| Fichero | Contenido |
+| File | Contents |
 |---|---|
-| `brief.md` | El encargo original completo (inmutable) |
-| `architecture.md` | Diagrama de procesos, flujo de datos IPC |
-| `code-map.md` | Mapa módulo → fichero con descripción de una línea |
-| `conventions.md` | Estilo, nombrado, patrones que seguimos |
-| `decisions.md` | Registro de decisiones técnicas (ADR ligero) |
-| `progress.md` | Estado actual por fases y próximos pasos |
-| `security.md` | Modelo de seguridad detallado |
-| `testing.md` | Estrategia de tests, cobertura, convenciones |
+| `brief.md` | The original complete brief (immutable) |
+| `architecture.md` | Process diagram, IPC data flow |
+| `code-map.md` | Module → file map with one-line description |
+| `conventions.md` | Style, naming, patterns we follow |
+| `decisions.md` | Technical decision log (lightweight ADR) |
+| `progress.md` | Current status by phase and next steps |
+| `security.md` | Detailed security model |
+| `testing.md` | Test strategy, coverage, conventions |
 
-## Fases
+## Phases
 
-- **Fase 1** — Terminal SSH básica (con tests)
-- **Fase 2** — Sesiones guardadas + Settings (con tests)
-- **Fase 3** — Panel de chat IA (con tests)
+- **Phase 1** — Basic SSH terminal (with tests)
+- **Phase 2** — Saved sessions + Settings (with tests)
+- **Phase 3** — AI chat panel (with tests)

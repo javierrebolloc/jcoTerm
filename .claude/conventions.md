@@ -1,62 +1,62 @@
-# conventions.md — Convenciones de código
+# conventions.md — Code Conventions
 
 ## TypeScript
 
-- `strict: true` en todos los tsconfig. Sin `any` sin justificación explícita.
-- Tipos explícitos en firmas de funciones públicas; inferencia en variables locales.
-- `interface` para contratos (tipos de datos públicos); `type` para uniones y aliases.
-- Enums solo si el conjunto de valores es cerrado y semánticamente significativo; si no, `as const`.
+- `strict: true` in all tsconfig files. No `any` without explicit justification.
+- Explicit types in public function signatures; inference for local variables.
+- `interface` for contracts (public data types); `type` for unions and aliases.
+- Enums only if the value set is closed and semantically meaningful; otherwise, `as const`.
 
-## Nombrado
+## Naming
 
-| Elemento | Convención | Ejemplo |
+| Element | Convention | Example |
 |---|---|---|
-| Clases | PascalCase | `SshSession`, `Redactor` |
-| Funciones/métodos | camelCase | `getVisibleContent()` |
+| Classes | PascalCase | `SshSession`, `Redactor` |
+| Functions/methods | camelCase | `getVisibleContent()` |
 | Variables | camelCase | `sessionId`, `terminalSnapshot` |
-| Constantes de módulo | SCREAMING_SNAKE | `MAX_SCROLLBACK_LINES` |
-| Canales IPC | `dominio:acción` en kebab-case | `ssh:connect`, `ai:sendMessage` |
-| Ficheros de componentes React | PascalCase | `Terminal.tsx`, `AiChat.tsx` |
-| Ficheros de utilidades/módulos | camelCase | `redactor.ts`, `ssh-session.ts` |
-| Ficheros de tests | `<módulo>.test.ts` | `redactor.test.ts` |
-| CSS Modules | camelCase en el objeto | `styles.chatPanel` |
+| Module constants | SCREAMING_SNAKE | `MAX_SCROLLBACK_LINES` |
+| IPC channels | `domain:action` in kebab-case | `ssh:connect`, `ai:sendMessage` |
+| React component files | PascalCase | `Terminal.tsx`, `AiChat.tsx` |
+| Utility/module files | camelCase | `redactor.ts`, `ssh-session.ts` |
+| Test files | `<module>.test.ts` | `redactor.test.ts` |
+| CSS Modules | camelCase in the object | `styles.chatPanel` |
 
-## Estructura de ficheros
+## File Structure
 
-- Un componente React = una carpeta con su `.tsx` y su `.module.css`.
-- Hooks extraídos en ficheros `use<Nombre>.ts` separados.
-- Sin barrel files (`index.ts` re-exportadores) a menos que el directorio tenga >4 exports públicos.
+- One React component = one folder with its `.tsx` and its `.module.css`.
+- Hooks extracted into separate `use<Name>.ts` files.
+- No barrel files (`index.ts` re-exporters) unless the directory has >4 public exports.
 
-## Comentarios
+## Comments
 
-- Solo donde el POR QUÉ no es obvio (restricción oculta, invariante sutil, workaround).
-- No documentar lo que el nombre ya dice.
-- En interfaces IPC y de seguridad: sí comentar las garantías o ausencias deliberadas (p. ej. `// No existe canal de vuelta a SSH por diseño`).
+- Only where the WHY is not obvious (hidden constraint, subtle invariant, workaround).
+- Do not document what the name already says.
+- In IPC and security interfaces: do comment guarantees or deliberate absences (e.g., `// No return channel to SSH by design`).
 
-## Manejo de errores
+## Error Handling
 
-- Errores del dominio: clases de error personalizadas (`SshConnectionError`, `RedactorError`).
-- En handlers IPC: capturar SIEMPRE, devolver `{ success: false, error: string }` sin incluir secretos ni stack traces completos en el mensaje.
-- Logs: `console.error` solo en desarrollo. En producción, logger estructurado sin datos sensibles.
-- Nunca hacer `throw` con credenciales u objetos SSH en el mensaje.
+- Domain errors: custom error classes (`SshConnectionError`, `RedactorError`).
+- In IPC handlers: ALWAYS catch, return `{ success: false, error: string }` without including secrets or full stack traces in the message.
+- Logs: `console.error` only in development. In production, structured logger without sensitive data.
+- Never `throw` with credentials or SSH objects in the message.
 
 ## React
 
-- Componentes funcionales únicamente.
-- Props tipadas con `interface` explícita encima del componente.
-- Estado local con `useState`; efectos con `useEffect` limpiando siempre los listeners.
-- Sin prop drilling de más de 2 niveles: usar un contexto React o un hook compartido.
+- Functional components only.
+- Props typed with an explicit `interface` above the component.
+- Local state with `useState`; effects with `useEffect` always cleaning up listeners.
+- No prop drilling beyond 2 levels: use a React context or a shared hook.
 
 ## IPC
 
-- Todos los nombres de canal definidos en `src/shared/ipc-channels.ts` como constantes.
-- `ipcMain.handle` para request/response (devuelve Promise).
-- `webContents.send` para notificaciones push del main al renderer (ej: output SSH).
-- Validar y sanitizar inputs en el main antes de usarlos (nunca confiar en el renderer).
+- All channel names defined in `src/shared/ipc-channels.ts` as constants.
+- `ipcMain.handle` for request/response (returns Promise).
+- `webContents.send` for push notifications from main to renderer (e.g., SSH output).
+- Validate and sanitize inputs in main before using them (never trust the renderer).
 
 ## CSS
 
-- Variables CSS en `:root` de `globals.css` para colores, espaciados y tipografía.
-- CSS Modules por componente: `.module.css` en la misma carpeta.
-- Tema oscuro como predeterminado (adecuado para una app de terminal).
-- Sin librerías de componentes UI externas en v1 (mantener las dependencias mínimas).
+- CSS variables in `:root` of `globals.css` for colors, spacing, and typography.
+- CSS Modules per component: `.module.css` in the same folder.
+- Dark theme as default (suitable for a terminal app).
+- No external UI component libraries in v1 (keep dependencies minimal).

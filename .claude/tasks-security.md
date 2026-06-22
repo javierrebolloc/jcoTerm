@@ -1,30 +1,30 @@
-# tasks-security.md — Tareas de seguridad pendientes
+# tasks-security.md — Pending Security Tasks
 
-Generado: 2026-06-20. Revisión completa del proyecto.
+Generated: 2026-06-20. Full project review.
 
 ## CRITICAL
 
-- [x] **SEC-01: API key filtrada en logs de debug** — Resuelto.
-- [x] **SEC-02: Sin verificación de host key SSH** — Resuelto: KnownHostsStore + hostVerifier + UX accept/reject + MITM warning.
+- [x] **SEC-01: API key leaked in debug logs** — Resolved.
+- [x] **SEC-02: No SSH host key verification** — Resolved: KnownHostsStore + hostVerifier + accept/reject UX + MITM warning.
 
 ## HIGH
 
-- [x] **SEC-03: Rutas SFTP sin validar** — Resuelto.
-- [x] **SEC-04: sessionsFilePath acepta cualquier ruta** — Resuelto.
-- [x] **SEC-05: Mensajes de error SSH exponen información** — Resuelto.
-- [x] **SEC-06: Patrones del Redactor incompletos** — Resuelto.
+- [x] **SEC-03: SFTP paths not validated** — Resolved.
+- [x] **SEC-04: sessionsFilePath accepts any path** — Resolved.
+- [x] **SEC-05: SSH error messages expose information** — Resolved.
+- [x] **SEC-06: Incomplete Redactor patterns** — Resolved.
 
 ## MEDIUM
 
-- [x] **SEC-07: Resize usa isValidPort()** — Resuelto.
-- [x] **SEC-08: Sin rate limiting** — Resuelto.
-- [x] **SEC-09: Named credential ID no validado** — Resuelto.
-- [x] **SEC-10: Nombres sin sanitizar en logs** — Resuelto.
-- [x] **SEC-11: CSP no se aplica en dev** — Resuelto.
-- [x] **SEC-12: IPv4 no valida octetos** — Resuelto.
+- [x] **SEC-07: Resize uses isValidPort()** — Resolved.
+- [x] **SEC-08: No rate limiting** — Resolved.
+- [x] **SEC-09: Named credential ID not validated** — Resolved.
+- [x] **SEC-10: Unsanitized names in logs** — Resolved.
+- [x] **SEC-11: CSP not applied in dev** — Resolved.
+- [x] **SEC-12: IPv4 doesn't validate octets** — Resolved.
 
 ## LOW
 
-- [x] **SEC-13: Sin límite de longitud en mensajes IA** — Resuelto.
-- [x] **SEC-14: Errores de descifrado DPAPI silenciosos** — Resuelto.
-- [ ] **SEC-15: Credenciales como strings JS no se limpian de memoria** — Limitación de JS, no hay solución práctica.
+- [x] **SEC-13: No length limit on AI messages** — Resolved.
+- [x] **SEC-14: Silent DPAPI decryption errors** — Resolved.
+- [ ] **SEC-15: JS credentials as strings can't be cleared from memory** — JS limitation, no practical solution.

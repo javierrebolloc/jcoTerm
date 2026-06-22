@@ -1,29 +1,29 @@
-# progress.md — Estado del proyecto
+# progress.md — Project Status
 
-Última actualización: 2026-06-22
+Last updated: 2026-06-22
 
-## Estado actual: App completa con SFTP, i18n, multi-ejecución, splash, lock, export/import
+## Current Status: Complete app with SFTP, i18n, multi-execution, splash, lock, export/import
 
-## Fases
+## Phases
 
-| Fase | Estado | Descripción |
+| Phase | Status | Description |
 |---|---|---|
-| Documentación inicial | ✅ Completa | CLAUDE.md + .claude/ creados |
-| **Fase 1** — Terminal SSH básica | ✅ Completa | Build limpio |
-| **Fase 2** — Sesiones guardadas + Settings | ✅ Completa | Build limpio |
-| **Fase 3** — Panel de IA | ✅ Completa | Redactor + AnthropicClient + AiChat |
-| **Extensión Gemini** | ✅ Completa | GeminiClient + selector de proveedor + quota bar |
-| **Mejoras UX (sesión 19-20)** | ✅ Completa | aiContextLines, copy/paste, debounce resize, auditorías |
-| **Mejoras e2e (sesión 21 AM)** | ✅ Completa | Streaming IA, SSH Agent, auto-recovery, loading states |
-| **Ajustes con sidebar** | ✅ Completa | Modal con navegación por secciones, nuevos settings terminal |
-| **Gestor SFTP** | ✅ Completa | Dual-pane FileZilla-like, transferencias, chmod, multi-tab |
-| **i18n** | ✅ Completa | Inglés (default) + Español, sistema profesional con JSON plano |
-| **Multi-ejecución** | ✅ Completa | Comandos replicados en todos los terminales del split |
-| **Splash screen** | ✅ Completa | Pantalla de carga 5s con "jcoTerm" |
-| **Lock screen** | ✅ Completa | Contraseña de desbloqueo con PBKDF2 |
-| **Export/Import** | ✅ Completa | Exportar/importar sesiones y carpetas (sin credenciales) |
+| Initial documentation | ✅ Complete | CLAUDE.md + .claude/ created |
+| **Phase 1** — Basic SSH Terminal | ✅ Complete | Clean build |
+| **Phase 2** — Saved Sessions + Settings | ✅ Complete | Clean build |
+| **Phase 3** — AI Panel | ✅ Complete | Redactor + AnthropicClient + AiChat |
+| **Gemini Extension** | ✅ Complete | GeminiClient + provider selector + quota bar |
+| **UX Improvements (session 19-20)** | ✅ Complete | aiContextLines, copy/paste, debounce resize, audits |
+| **E2E Improvements (session 21 AM)** | ✅ Complete | AI streaming, SSH Agent, auto-recovery, loading states |
+| **Settings with sidebar** | ✅ Complete | Modal with section navigation, new terminal settings |
+| **SFTP Manager** | ✅ Complete | Dual-pane FileZilla-like, transfers, chmod, multi-tab |
+| **i18n** | ✅ Complete | English (default) + Spanish, professional system with flat JSON |
+| **Multi-execution** | ✅ Complete | Commands replicated across all terminals in the split |
+| **Splash screen** | ✅ Complete | Loading screen 5s with "jcoTerm" |
+| **Lock screen** | ✅ Complete | Unlock password with PBKDF2 |
+| **Export/Import** | ✅ Complete | Export/import sessions and folders (without credentials) |
 
-## Tests actuales: 306
+## Current Tests: 306
 
 | Suite | Tests |
 |---|---|
@@ -49,12 +49,12 @@
 | `lock-store.test.ts` | 15 |
 | **Total** | **306** |
 
-## Pendiente (bajo impacto)
+## Pending (low impact)
 
-- SEC-15: Strings JS no se pueden zerear (limitación del lenguaje)
-- API-08: Reconexión SSH automática
-- API-18: Migración de settings entre versiones
-- Tests E2E con Playwright
-- xterm.js dimensions error (cosmético, try-catch en open)
-- Multi-exec paste: right-click paste replica a todos los terminales del split
-- Split layout optimizado: padding/statusBar reducidos, min-width/min-height en celdas
+- SEC-15: JS strings cannot be zeroed out (language limitation)
+- API-08: Automatic SSH reconnection
+- API-18: Settings migration between versions
+- E2E tests with Playwright
+- xterm.js dimensions error (cosmetic, try-catch on open)
+- Multi-exec paste: right-click paste replicates to all terminals in the split
+- Split layout optimized: reduced padding/statusBar, min-width/min-height on cells

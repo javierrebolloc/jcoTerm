@@ -1,10 +1,10 @@
-# architecture.md — Arquitectura de procesos
+# architecture.md — Process Architecture
 
-## Diagrama de procesos
+## Process Diagram
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│  PROCESO MAIN (Node.js privilegiado)                            │
+│  MAIN PROCESS (privileged Node.js)                              │
 │                                                                  │
 │  ┌──────────────┐  ┌────────────────┐  ┌────────────────────┐  │
 │  │  SshManager  │  │  SessionStore  │  │  AnthropicClient   │  │
@@ -15,25 +15,25 @@
 │  │  IPC Handlers: ssh.handlers | session.handlers | ai.handlers │
 │  └──────────────────────────┬───────────────────────────────┘   │
 └─────────────────────────────│───────────────────────────────────┘
-                              │ contextBridge (API mínima)
+                              │ contextBridge (minimal API)
 ┌─────────────────────────────│───────────────────────────────────┐
 │  PRELOAD (src/preload/index.ts)                                 │
-│  Expone window.electronAPI con los métodos permitidos           │
+│  Exposes window.electronAPI with allowed methods                │
 └─────────────────────────────│───────────────────────────────────┘
                               │ window.electronAPI.*
 ┌─────────────────────────────│───────────────────────────────────┐
-│  PROCESO RENDERER (sandboxed, sin Node.js)                      │
+│  RENDERER PROCESS (sandboxed, no Node.js)                       │
 │                                                                  │
 │  ┌─────────────┐  ┌──────────────┐  ┌────────────────────────┐ │
 │  │ SessionList │  │   Terminal   │  │       AiChat           │ │
-│  │             │  │  (xterm.js)  │  │  (solo lee terminal)   │ │
+│  │             │  │  (xterm.js)  │  │  (read-only terminal)  │ │
 │  └─────────────┘  └──────────────┘  └────────────────────────┘ │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-## Flujo de datos IPC
+## IPC Data Flow
 
-### Conexión SSH y terminal
+### SSH Connection and Terminal
 
 ```
 Renderer                    Main                    SSH Server
@@ -47,7 +47,7 @@ Renderer                    Main                    SSH Server
    │──ssh:disconnect(id) ─────│──── close ──────────────▶│
 ```
 
-### Panel de IA (SOLO LECTURA — sin canal de vuelta a SSH)
+### AI Panel (READ-ONLY — no return channel to SSH)
 
 ```
 Renderer                    Main                    Anthropic API
@@ -56,50 +56,50 @@ Renderer                    Main                    Anthropic API
    │    userMessage,          │                          │
    │    terminalSnapshot      │                          │
    │  })─────────────────────▶│                          │
-   │                          │── redactar secretos      │
-   │                          │── construir prompt ─────▶│
-   │                          │◀─ respuesta ─────────────│
+   │                          │── redact secrets         │
+   │                          │── build prompt ──────────▶│
+   │                          │◀─ response ──────────────│
    │◀─{reply, redactedCtx} ───│                          │
    │                          │
-   │  ✗ NO EXISTE ai:writeToTerminal
-   │  ✗ NO EXISTE ningún canal IA → ssh:input
+   │  ✗ ai:writeToTerminal DOES NOT EXIST
+   │  ✗ NO channel from AI → ssh:input EXISTS
 ```
 
-### Sesiones y ajustes
+### Sessions and Settings
 
 ```
-Renderer                    Main                    Disco (userData)
+Renderer                    Main                    Disk (userData)
    │──sessions:list() ───────▶│──── electron-store ────▶│
    │◀─ SavedSession[] ────────│◀────────────────────────│
-   │──sessions:save(s,creds)─▶│──── AES-256-GCM ───────▶│ (cifrado con lock key)
-   │──sessions:delete(id) ───▶│──── borrar ────────────▶│
+   │──sessions:save(s,creds)─▶│──── AES-256-GCM ───────▶│ (encrypted with lock key)
+   │──sessions:delete(id) ───▶│──── delete ────────────▶│
    │──settings:get() ─────────▶│                         │
    │──settings:set(patch) ────▶│                         │
 ```
 
-## Configuración de seguridad BrowserWindow
+## BrowserWindow Security Configuration
 
 ```typescript
 webPreferences: {
-  contextIsolation: true,      // renderer no accede a objetos Node/Electron
-  nodeIntegration: false,      // sin Node en renderer
-  sandbox: true,               // renderer en sandbox de Chromium
+  contextIsolation: true,      // renderer cannot access Node/Electron objects
+  nodeIntegration: false,      // no Node in renderer
+  sandbox: true,               // renderer in Chromium sandbox
   preload: path.join(__dirname, 'preload/index.js'),
 }
 ```
 
-## Layout de la UI
+## UI Layout
 
 ```
 ┌──────────────────────────────────────────────────────┐
-│  Barra de título (sin frame nativo)                  │
+│  Title bar (no native frame)                         │
 ├──────────────┬───────────────────────────────────────┤
 │              │                                        │
 │  Session     │         Terminal (xterm.js)            │
 │  List        │                                        │
 │  (sidebar)   │                                        │
 │              ├───────────────────────────────────────┤
-│  [+ Nueva]   │         AI Chat Panel                  │
-│  [Ajustes]   │   (redaction preview + chat)           │
+│  [+ New]     │         AI Chat Panel                  │
+│  [Settings]  │   (redaction preview + chat)           │
 └──────────────┴───────────────────────────────────────┘
 ```

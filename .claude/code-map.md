@@ -1,82 +1,82 @@
-# code-map.md — Mapa del código
+# code-map.md — Code Map
 
-Consultar este fichero para ir directo al módulo correcto sin escanear el árbol.
+Consult this file to go directly to the right module without scanning the tree.
 
-## Proceso Main (`src/main/`)
+## Main Process (`src/main/`)
 
-| Fichero | Qué hace |
+| File | What it does |
 |---|---|
-| `src/main/index.ts` | Punto de entrada: BrowserWindow, CSP, handlers IPC, `setLocale()`, window state store, logging de renderer |
-| `src/main/portable.ts` | Detección modo portable (fichero `portable` junto al .exe) |
-| `src/main/logger.ts` | Inicializa electron-log (archivo + consola) |
-| `src/main/security.ts` | CSP, validadores IPC, `sanitizeSshError` (i18n), `IpcRateLimiter` |
+| `src/main/index.ts` | Entry point: BrowserWindow, CSP, IPC handlers, `setLocale()`, window state store, renderer logging |
+| `src/main/portable.ts` | Portable mode detection (`portable` file next to the .exe) |
+| `src/main/logger.ts` | Initializes electron-log (file + console) |
+| `src/main/security.ts` | CSP, IPC validators, `sanitizeSshError` (i18n), `IpcRateLimiter` |
 | `src/main/ipc/ssh.handlers.ts` | SSH connect/disconnect/input/resize, host key verify, rate limiting |
-| `src/main/ipc/session.handlers.ts` | CRUD sesiones guardadas |
-| `src/main/ipc/settings.handlers.ts` | settings:get/set, `setLocale()` en cambio de idioma, `appVersion` |
-| `src/main/ipc/credential.handlers.ts` | CRUD credenciales nombradas |
-| `src/main/ipc/folder.handlers.ts` | CRUD carpetas |
-| `src/main/ipc/sftp.handlers.ts` | SFTP: listDir, realpath, stat, mkdir, rmdir, unlink, rename, chmod, download (stream bg), upload (stream bg) |
-| `src/main/ipc/local.handlers.ts` | Filesystem local: listDir, homePath, drives (Windows A:-Z:) |
-| `src/main/ipc/ai.handlers.ts` | IA: streaming via push events, `calculateMaxTokens()`, historial de conversación |
-| `src/main/ssh/SshManager.ts` | Registro de sesiones SSH activas |
-| `src/main/ssh/SshSession.ts` | Wrapper ssh2: shell, SFTP (8 ops), `formatPermissions()`, streaming download/upload |
-| `src/main/storage/JsonFileStore.ts` | Clase base: cache, escritura atómica, backup |
-| `src/main/storage/SessionStore.ts` | CRUD sesiones (JSON) |
-| `src/main/storage/CredentialStore.ts` | Cifrado AES-256-GCM (clave derivada de lock password) |
-| `src/main/storage/NamedCredentialStore.ts` | Credenciales nombradas |
-| `src/main/storage/FolderStore.ts` | Carpetas |
-| `src/main/storage/KnownHostsStore.ts` | Host keys SSH |
-| `src/main/storage/SettingsStore.ts` | Preferencias: terminal, IA, idioma, fuente, cursor |
-| `src/main/storage/LockStore.ts` | Contraseña de bloqueo: PBKDF2 hash + salt |
-| `src/main/ai/AIProvider.ts` | Interface `AIProvider` + `AIStreamCallbacks` + `ChatHistoryMessage` |
-| `src/main/ai/AnthropicClient.ts` | Claude: sendMessage + stream, historial, error classification (i18n) |
-| `src/main/ai/GeminiClient.ts` | Gemini: sendMessage + stream (SSE), retry, quota, historial (i18n) |
+| `src/main/ipc/session.handlers.ts` | Saved sessions CRUD |
+| `src/main/ipc/settings.handlers.ts` | settings:get/set, `setLocale()` on language change, `appVersion` |
+| `src/main/ipc/credential.handlers.ts` | Named credentials CRUD |
+| `src/main/ipc/folder.handlers.ts` | Folders CRUD |
+| `src/main/ipc/sftp.handlers.ts` | SFTP: listDir, realpath, stat, mkdir, rmdir, unlink, rename, chmod, download (bg stream), upload (bg stream) |
+| `src/main/ipc/local.handlers.ts` | Local filesystem: listDir, homePath, drives (Windows A:-Z:) |
+| `src/main/ipc/ai.handlers.ts` | AI: streaming via push events, `calculateMaxTokens()`, conversation history |
+| `src/main/ssh/SshManager.ts` | Registry of active SSH sessions |
+| `src/main/ssh/SshSession.ts` | ssh2 wrapper: shell, SFTP (8 ops), `formatPermissions()`, streaming download/upload |
+| `src/main/storage/JsonFileStore.ts` | Base class: cache, atomic write, backup |
+| `src/main/storage/SessionStore.ts` | Sessions CRUD (JSON) |
+| `src/main/storage/CredentialStore.ts` | AES-256-GCM encryption (key derived from lock password) |
+| `src/main/storage/NamedCredentialStore.ts` | Named credentials |
+| `src/main/storage/FolderStore.ts` | Folders |
+| `src/main/storage/KnownHostsStore.ts` | SSH host keys |
+| `src/main/storage/SettingsStore.ts` | Preferences: terminal, AI, language, font, cursor |
+| `src/main/storage/LockStore.ts` | Lock password: PBKDF2 hash + salt |
+| `src/main/ai/AIProvider.ts` | `AIProvider` interface + `AIStreamCallbacks` + `ChatHistoryMessage` |
+| `src/main/ai/AnthropicClient.ts` | Claude: sendMessage + stream, history, error classification (i18n) |
+| `src/main/ai/GeminiClient.ts` | Gemini: sendMessage + stream (SSE), retry, quota, history (i18n) |
 
 ## i18n (`src/shared/i18n/`)
 
-| Fichero | Qué hace |
+| File | What it does |
 |---|---|
-| `src/shared/i18n/index.ts` | Motor: `t(key, params?)`, `setLocale()`, `getLocale()`. Fallback en→key |
-| `src/shared/i18n/en.json` | ~250 claves en inglés (source of truth) |
-| `src/shared/i18n/es.json` | ~250 claves en español |
+| `src/shared/i18n/index.ts` | Engine: `t(key, params?)`, `setLocale()`, `getLocale()`. Fallback en→key |
+| `src/shared/i18n/en.json` | ~250 keys in English (source of truth) |
+| `src/shared/i18n/es.json` | ~250 keys in Spanish |
 
 ## Preload (`src/preload/`)
 
-| Fichero | Qué hace |
+| File | What it does |
 |---|---|
 | `src/preload/index.ts` | contextBridge: ssh, sessions, folders, credentials, ai (stream), sftp (full CRUD + transfers), local (fs), settings, app (windowState) |
 
-## Tipos compartidos (`src/shared/`)
+## Shared Types (`src/shared/`)
 
-| Fichero | Qué hace |
+| File | What it does |
 |---|---|
-| `src/shared/ipc-channels.ts` | Todos los canales IPC: SSH, SESSIONS, AI (stream), SFTP (12 ops), LOCAL (3 ops), APP |
+| `src/shared/ipc-channels.ts` | All IPC channels: SSH, SESSIONS, AI (stream), SFTP (12 ops), LOCAL (3 ops), APP |
 | `src/shared/types.ts` | Interfaces: `Locale`, `AppSettings`, `SftpStatResult`, `LocalEntry`, `TransferItem`, `WindowState`, `ElectronAPI` |
-| `src/shared/Redactor.ts` | Redactor con `RedactedPatternType` y `matchedTypes` |
+| `src/shared/Redactor.ts` | Redactor with `RedactedPatternType` and `matchedTypes` |
 
 ## Renderer (`src/renderer/`)
 
-| Fichero | Qué hace |
+| File | What it does |
 |---|---|
-| `src/renderer/App.tsx` | Layout raíz: ConfirmProvider + LanguageProvider, viewMode (terminal/sftp), multiExec |
-| `src/renderer/hooks/LanguageContext.tsx` | React context para idioma |
-| `src/renderer/hooks/useTranslation.ts` | Hook `{ t }` para componentes |
-| `src/renderer/hooks/useConfirm.tsx` | ConfirmProvider + `useConfirm()` para diálogos custom |
-| **SessionList/** | Árbol de carpetas/sesiones, drag & drop, menú contextual |
-| **Terminal/** | Multi-tab, split view, multi-ejecución (input + paste), live settings (font, cursor) |
-| **AiChat/** | Chat IA: streaming, historial, quota bar, multi-tab |
-| **Settings/** | Modal con sidebar (5 secciones), idioma funcional, terminal config |
-| **Credentials/** | CRUD credenciales |
-| **FileExplorer/** | Explorador de ficheros simple (panel derecho) |
-| **SplashScreen/** | Pantalla de carga (5s) con "jcoTerm" |
-| **LockScreen/** | Contraseña de desbloqueo (crear/verificar) |
-| **SftpManager/** | Gestor SFTP dual-pane: ConnectionBar, FilePane, FileTable, Breadcrumb, ContextMenu, TransferQueue, ChmodDialog |
+| `src/renderer/App.tsx` | Root layout: ConfirmProvider + LanguageProvider, viewMode (terminal/sftp), multiExec |
+| `src/renderer/hooks/LanguageContext.tsx` | React context for language |
+| `src/renderer/hooks/useTranslation.ts` | `{ t }` hook for components |
+| `src/renderer/hooks/useConfirm.tsx` | ConfirmProvider + `useConfirm()` for custom dialogs |
+| **SessionList/** | Folder/session tree, drag & drop, context menu |
+| **Terminal/** | Multi-tab, split view, multi-execution (input + paste), live settings (font, cursor) |
+| **AiChat/** | AI chat: streaming, history, quota bar, multi-tab |
+| **Settings/** | Modal with sidebar (5 sections), functional language selector, terminal config |
+| **Credentials/** | Credentials CRUD |
+| **FileExplorer/** | Simple file explorer (right panel) |
+| **SplashScreen/** | Loading screen (5s) with "jcoTerm" |
+| **LockScreen/** | Unlock password (create/verify) |
+| **SftpManager/** | Dual-pane SFTP manager: ConnectionBar, FilePane, FileTable, Breadcrumb, ContextMenu, TransferQueue, ChmodDialog |
 
 ## Tests (`src/tests/`) — 300 tests, 20 suites
 
-| Fichero | Tests |
+| File | Tests |
 |---|---|
 | `sftp-handlers.test.ts` | 28 — SFTP handlers (stat, mkdir, rmdir, unlink, rename, chmod, download, upload) |
 | `local-handlers.test.ts` | 11 — Local fs handlers (listDir, homePath, drives) |
 | `lock-store.test.ts` | 11 — Lock password (PBKDF2 hash, verify, persist) |
-| Otros 17 suites | 250 — SSH, sessions, credentials, folders, settings, security, redactor, AI |
+| Other 17 suites | 250 — SSH, sessions, credentials, folders, settings, security, redactor, AI |

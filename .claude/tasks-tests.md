@@ -1,10 +1,10 @@
-# tasks-tests.md — Tareas de cobertura de tests
+# tasks-tests.md — Test Coverage Tasks
 
-Generado: 2026-06-20. Revisión completa del proyecto.
+Generated: 2026-06-20. Full project review.
 
-## Módulos sin tests (cobertura 0%) → RESUELTOS
+## Modules Without Tests (0% coverage) → RESOLVED
 
-- [x] **TEST-01: IPC session.handlers.ts** — 18 tests (list enrichment, save con/sin credentials, delete cascade, getFilePath)
+- [x] **TEST-01: IPC session.handlers.ts** — 18 tests (list enrichment, save with/without credentials, delete cascade, getFilePath)
 - [x] **TEST-03: IPC credential.handlers.ts** — 12 tests (list, save UUID gen/validation, delete cascade)
 - [x] **TEST-04: IPC folder.handlers.ts** — 13 tests (list, save UUID gen, sanitizeForLog, delete validation)
 - [x] **TEST-06: SshManager.ts** — 17 tests (create, get, remove, closeAll, activeCount, disconnect on remove)
@@ -12,29 +12,29 @@ Generado: 2026-06-20. Revisión completa del proyecto.
 - [x] **TEST-08: SettingsStore.ts** — 10 tests (get defaults, set individual/multiple, getSessionsFilePath)
 - [x] **TEST-09: FolderStore.ts** — 12 tests (list/save/delete/findById, corrupt JSON backup)
 - [x] **TEST-10: NamedCredentialStore.ts** — 11 tests (list/save/delete/findById, corrupt JSON)
-- [x] **KnownHostsStore.ts** (nuevo) — 13 tests (lookup/add/verify match/mismatch/unknown, cache, corrupt file)
+- [x] **KnownHostsStore.ts** (new) — 13 tests (lookup/add/verify match/mismatch/unknown, cache, corrupt file)
 
-## Tests de seguridad
+## Security Tests
 
-- [x] **TEST-16: Validadores de seguridad (security.ts)** — 32 tests (isValidHost IPv4 octets, isValidTerminalDimension, isValidSettingsPath, sanitizeSshError, sanitizeForLog, IpcRateLimiter)
+- [x] **TEST-16: Security validators (security.ts)** — 32 tests (isValidHost IPv4 octets, isValidTerminalDimension, isValidSettingsPath, sanitizeSshError, sanitizeForLog, IpcRateLimiter)
 
-## Pendientes (baja prioridad)
+## Pending (low priority)
 
-- [ ] **TEST-02: IPC settings.handlers.ts** — Handlers settings:get/set con API key storage y path migration.
+- [ ] **TEST-02: IPC settings.handlers.ts** — settings:get/set handlers with API key storage and path migration.
 - [ ] **TEST-05: IPC sftp.handlers.ts** — withSftpSession middleware, listDir/realpath validation.
-- [ ] **TEST-11: ssh-handlers.test.ts solo prueba validadores** — No hay tests del handler SSH.CONNECT completo.
-- [ ] **TEST-12: SshSession SFTP methods** — listDir() y realpath() sin tests.
-- [ ] **TEST-13: Redactor edge cases** — Passwords entre comillas, caracteres especiales, múltiples patrones solapados.
-- [ ] **TEST-14: GeminiClient errores de red** — fetch exceptions, body no parseable.
-- [ ] **TEST-15: ai-provider-routing paths faltantes** — Provider desconocido, errores genéricos.
-- [ ] **TEST-17: Tests de no-filtración de credenciales** — Verificar que passwords no aparecen en error messages.
-- [ ] **TEST-18: Sin reporting de cobertura** — Configurar `npm run test:coverage`.
-- [ ] **TEST-19: E2E tests mínimos** — Solo 3 smoke tests, faltan flujos completos.
-- [ ] **TEST-20: Assertions débiles** — toBeGreaterThanOrEqual en redactor, toContain laxo.
+- [ ] **TEST-11: ssh-handlers.test.ts only tests validators** — No tests for the full SSH.CONNECT handler.
+- [ ] **TEST-12: SshSession SFTP methods** — listDir() and realpath() without tests.
+- [ ] **TEST-13: Redactor edge cases** — Quoted passwords, special characters, multiple overlapping patterns.
+- [ ] **TEST-14: GeminiClient network errors** — fetch exceptions, non-parseable body.
+- [ ] **TEST-15: ai-provider-routing missing paths** — Unknown provider, generic errors.
+- [ ] **TEST-17: Credential non-leakage tests** — Verify that passwords don't appear in error messages.
+- [ ] **TEST-18: No coverage reporting** — Configure `npm run test:coverage`.
+- [ ] **TEST-19: Minimal E2E tests** — Only 3 smoke tests, missing complete flows.
+- [ ] **TEST-20: Weak assertions** — toBeGreaterThanOrEqual in redactor, loose toContain.
 
-## Resumen de cobertura
+## Coverage Summary
 
-| Suite | Tests (antes) | Tests (ahora) |
+| Suite | Tests (before) | Tests (now) |
 |---|---|---|
 | ssh-session | 10 | 10 |
 | ssh-handlers | 14 | 14 |

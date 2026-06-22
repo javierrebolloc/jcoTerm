@@ -1,101 +1,101 @@
-# security.md — Modelo de seguridad
+# security.md — Security Model
 
-## Principios fundamentales
+## Fundamental Principles
 
-1. **Mínimo privilegio en el renderer.** El renderer no puede acceder a Node.js ni a Electron directamente. `contextIsolation: true`, `nodeIntegration: false`, `sandbox: true`.
-2. **Credenciales solo en main.** SSH passwords, claves privadas y la API key de Anthropic nunca atraviesan el IPC en claro ni se almacenan sin cifrar.
-3. **La IA no tiene canal de escritura.** No existe ningún handler IPC que conecte output de IA con input SSH. Garantía estructural.
-4. **Redacción antes de enviar contexto a la IA.** El usuario ve el texto redactado antes de confirmar el envío.
+1. **Least privilege in the renderer.** The renderer cannot access Node.js or Electron directly. `contextIsolation: true`, `nodeIntegration: false`, `sandbox: true`.
+2. **Credentials only in main.** SSH passwords, private keys, and the Anthropic API key never cross IPC in plaintext nor are stored unencrypted.
+3. **AI has no write channel.** There is no IPC handler that connects AI output to SSH input. Structural guarantee.
+4. **Redaction before sending context to AI.** The user sees the redacted text before confirming submission.
 
-## Contraseña de bloqueo (LockStore)
+## Lock Password (LockStore)
 
-La app requiere una contraseña al iniciar. Si no existe, se pide crearla en el primer arranque.
+The app requires a password on startup. If none exists, the user is asked to create one on first launch.
 
-| Aspecto | Detalle |
+| Aspect | Detail |
 |---|---|
-| KDF | PBKDF2 (SHA-512, 100.000 iteraciones) |
-| Salt | 32 bytes aleatorios (crypto.randomBytes) |
+| KDF | PBKDF2 (SHA-512, 100,000 iterations) |
+| Salt | 32 random bytes (crypto.randomBytes) |
 | Key length | 64 bytes |
-| Almacenamiento | `lock.json` en userData: `{ salt, hash, iterations }` |
-| Comparación | `crypto.timingSafeEqual` (previene timing attacks) |
+| Storage | `lock.json` in userData: `{ salt, hash, iterations }` |
+| Comparison | `crypto.timingSafeEqual` (prevents timing attacks) |
 
-La contraseña en claro nunca se almacena ni se transmite al renderer. El renderer envía la contraseña via IPC, el main la hashea y compara.
+The plaintext password is never stored or transmitted to the renderer. The renderer sends the password via IPC, and main hashes and compares it.
 
-## Almacenamiento de credenciales
+## Credential Storage
 
-| Dato | Dónde se guarda | Cómo |
+| Data | Where it is stored | How |
 |---|---|---|
-| Contraseña SSH | userData/credentials.json | AES-256-GCM (clave derivada de la lock password) |
-| Clave privada SSH | userData/credentials.json | AES-256-GCM (clave derivada de la lock password) |
-| API key Anthropic | userData/credentials.json | AES-256-GCM (clave derivada de la lock password) |
-| API key Gemini | userData/credentials.json | AES-256-GCM (clave derivada de la lock password) |
-| Sesiones (host, puerto, user) | userData/sessions.json | electron-store (sin cifrar — no sensible) |
-| Preferencias UI | userData/config.json | electron-store (sin cifrar) |
+| SSH Password | userData/credentials.json | AES-256-GCM (key derived from the lock password) |
+| SSH Private Key | userData/credentials.json | AES-256-GCM (key derived from the lock password) |
+| Anthropic API Key | userData/credentials.json | AES-256-GCM (key derived from the lock password) |
+| Gemini API Key | userData/credentials.json | AES-256-GCM (key derived from the lock password) |
+| Sessions (host, port, user) | userData/sessions.json | electron-store (unencrypted — not sensitive) |
+| UI Preferences | userData/config.json | electron-store (unencrypted) |
 
-La clave de cifrado se deriva de la lock password con PBKDF2 y solo existe en memoria mientras la app está desbloqueada. Nunca se escribe en disco ni se pasa al renderer. Si la lock password cambia, las credenciales antiguas se borran (la nueva clave no puede descifrarlas).
+The encryption key is derived from the lock password with PBKDF2 and only exists in memory while the app is unlocked. It is never written to disk or passed to the renderer. If the lock password changes, old credentials are deleted (the new key cannot decrypt them).
 
-## Modo portable
+## Portable Mode
 
-Si existe un fichero `portable` junto al ejecutable, la app entra en modo portable:
-- `app.setPath('userData', './data/')` → todos los datos se guardan junto al .exe
-- Las sesiones se guardan en `data/sessions.json` en vez de Documentos
-- Las credenciales usan AES-256-GCM (derivado de la lock password) → portables entre máquinas
-- No depende de DPAPI ni del usuario de Windows
+If a `portable` file exists next to the executable, the app enters portable mode:
+- `app.setPath('userData', './data/')` — all data is stored alongside the .exe
+- Sessions are saved in `data/sessions.json` instead of Documents
+- Credentials use AES-256-GCM (derived from the lock password) — portable across machines
+- Does not depend on DPAPI or the Windows user
 
-## Flujo de credenciales en conexión SSH
+## Credential Flow During SSH Connection
 
 ```
-Renderer ──ssh:connect({ sessionId })──▶ Main
-                                          │
+Renderer ──ssh:connect({ sessionId })──> Main
+                                          |
                                     SessionStore.getCredentials(id)
-                                          │ (descifra con AES-256-GCM + key en memoria)
-                                          ▼
+                                          | (decrypts with AES-256-GCM + key in memory)
+                                          v
                                     SshSession.connect(host, user, creds)
-                                          │
-                                    creds = null (limpiar referencia)
-                                          ▼
-                                    SSH stream activo
+                                          |
+                                    creds = null (clear reference)
+                                          v
+                                    SSH stream active
 ```
 
-El renderer nunca recibe las credenciales. Solo envía el `sessionId`.
-La clave de descifrado solo existe en memoria tras el desbloqueo.
+The renderer never receives the credentials. It only sends the `sessionId`.
+The decryption key only exists in memory after unlocking.
 
-## Ciclo de vida de la clave de cifrado
+## Encryption Key Lifecycle
 
 ```
-App inicia → splash 5s → lock screen
-                            │
-                      usuario introduce password
-                            │
-                      PBKDF2(password, encryptionSalt) → encryptionKey (32 bytes, en memoria)
-                            │
+App starts -> splash 5s -> lock screen
+                            |
+                      user enters password
+                            |
+                      PBKDF2(password, encryptionSalt) -> encryptionKey (32 bytes, in memory)
+                            |
                       CredentialStore.setEncryptionKey(key)
-                            │
-                      App desbloqueada — credenciales accesibles
-                            │
-                      Al cerrar app → key descartada → credenciales inaccesibles
+                            |
+                      App unlocked — credentials accessible
+                            |
+                      On app close -> key discarded -> credentials inaccessible
 ```
 
-Si se cambia la lock password:
-1. Se genera nuevo `encryptionSalt` + `verifySalt`
-2. Se borran todas las credenciales (`wipeCredentials`)
-3. Se deriva nueva clave de cifrado
+If the lock password is changed:
+1. New `encryptionSalt` + `verifySalt` are generated
+2. All credentials are deleted (`wipeCredentials`)
+3. New encryption key is derived
 
-## Redacción de secretos (Redactor.ts)
+## Secret Redaction (Redactor.ts)
 
-Patrones que se aplican antes de enviar contexto a Anthropic:
+Patterns applied before sending context to Anthropic:
 
-| Patrón | Qué detecta |
+| Pattern | What it detects |
 |---|---|
-| `password\s*[:=]\s*\S+` | Contraseñas en texto |
-| `-----BEGIN .* PRIVATE KEY-----[\s\S]*-----END .* PRIVATE KEY-----` | Claves privadas PEM |
-| `Authorization:\s*(Bearer\s+\S+\|Basic\s+\S+)` | Cabeceras HTTP de auth |
-| `[A-Za-z0-9+/]{40,}={0,2}` (context-aware) | Tokens base64 largos |
-| `sk-[A-Za-z0-9]{32,}` | API keys estilo OpenAI/Anthropic |
+| `password\s*[:=]\s*\S+` | Passwords in text |
+| `-----BEGIN .* PRIVATE KEY-----[\s\S]*-----END .* PRIVATE KEY-----` | PEM private keys |
+| `Authorization:\s*(Bearer\s+\S+\|Basic\s+\S+)` | HTTP auth headers |
+| `[A-Za-z0-9+/]{40,}={0,2}` (context-aware) | Long base64 tokens |
+| `sk-[A-Za-z0-9]{32,}` | OpenAI/Anthropic-style API keys |
 | `ghp_[A-Za-z0-9]{36}` | GitHub personal access tokens |
-| `export \w*(TOKEN\|KEY\|SECRET\|PASS)\w*=\S+` | Variables de entorno con secretos |
+| `export \w*(TOKEN\|KEY\|SECRET\|PASS)\w*=\S+` | Environment variables with secrets |
 
-Los patrones reemplazan el valor por `[REDACTED]`. El texto redactado se muestra al usuario en `RedactionPreview` antes de confirmar el envío.
+The patterns replace the value with `[REDACTED]`. The redacted text is shown to the user in `RedactionPreview` before confirming submission.
 
 ## Content Security Policy (BrowserWindow)
 
@@ -103,37 +103,37 @@ Los patrones reemplazan el valor por `[REDACTED]`. El texto redactado se muestra
 default-src 'self';
 script-src 'self';
 style-src 'self' 'unsafe-inline';
-connect-src 'none';         ← el renderer no hace fetch directamente
+connect-src 'none';         <- the renderer does not fetch directly
 img-src 'self' data:;
 font-src 'self';
 ```
 
-Las llamadas HTTP a Anthropic las hace el proceso main, nunca el renderer.
+HTTP calls to Anthropic are made by the main process, never the renderer.
 
-## Validación de inputs IPC
+## IPC Input Validation
 
-En `src/main/security.ts`:
-- Validar tipo y rango de todos los parámetros de entrada IPC.
-- Limitar longitud de strings (evitar ataques de memoria).
-- El nombre del host SSH se valida contra un regex de hostname/IP antes de conectar.
-- El `sessionId` se valida como UUID v4 antes de buscar en el Map.
+In `src/main/security.ts`:
+- Validate type and range of all IPC input parameters.
+- Limit string length (prevent memory attacks).
+- The SSH hostname is validated against a hostname/IP regex before connecting.
+- The `sessionId` is validated as UUID v4 before looking it up in the Map.
 
 ## Logs
 
-- En desarrollo: `console.log/error` estándar.
-- En producción: sin credenciales, sin stack traces con datos sensibles, sin contenido de terminal.
-- Los errores de conexión SSH exponen solo el código de error, no la configuración de la sesión.
+- In development: standard `console.log/error`.
+- In production: no credentials, no stack traces with sensitive data, no terminal content.
+- SSH connection errors expose only the error code, not the session configuration.
 
-## Privacidad en el tier gratuito de Gemini
+## Privacy in the Gemini Free Tier
 
-El tier gratuito de la API de Gemini (Google AI Studio, sin facturación activa) tiene las siguientes implicaciones que el usuario debe conocer:
+The Gemini API free tier (Google AI Studio, no active billing) has the following implications that the user should be aware of:
 
-- **Coste cero garantizado**: sin cuenta de facturación asociada a la clave API, Google rechazará peticiones más allá del límite gratuito diario/por minuto. No es posible incurrir en costes accidentalmente.
-- **Uso de datos para entrenamiento**: en el tier gratuito, Google puede utilizar los prompts y respuestas para mejorar sus modelos. El tier de pago (con facturación activa) no usa los datos para entrenamiento por defecto.
-- **Mitigación en la app**: el Redactor elimina secretos del snapshot del terminal antes de enviarlo. La pantalla de `RedactionPreview` permite al usuario revisar qué se enviará. Aun así, la app muestra un aviso explícito en Ajustes desaconsejando el envío de información sensible cuando se usa Gemini en tier gratuito.
+- **Guaranteed zero cost**: without a billing account associated with the API key, Google will reject requests beyond the free daily/per-minute limit. It is not possible to incur costs accidentally.
+- **Data use for training**: in the free tier, Google may use prompts and responses to improve their models. The paid tier (with active billing) does not use data for training by default.
+- **Mitigation in the app**: the Redactor removes secrets from the terminal snapshot before sending it. The `RedactionPreview` screen allows the user to review what will be sent. Even so, the app displays an explicit warning in Settings discouraging the sending of sensitive information when using Gemini on the free tier.
 
-Las llamadas HTTP a Gemini las realiza el proceso main via `fetch` nativo (Node 18+). La CSP del renderer (`connect-src 'none'`) impide que el renderer contacte directamente con la API de Gemini.
+HTTP calls to Gemini are made by the main process via native `fetch` (Node 18+). The renderer's CSP (`connect-src 'none'`) prevents the renderer from contacting the Gemini API directly.
 
-## Garantía de solo lectura de IA (verificable en código)
+## AI Read-Only Guarantee (Verifiable in Code)
 
-Buscar en el código: no debe existir ninguna llamada donde el resultado de `AnthropicClient.sendMessage()` se pase como argumento a `SshSession.write()` ni a ningún handler de `ssh:input`. Esta invariante está cubierta por un test de arquitectura.
+Search the code: there must be no call where the result of `AnthropicClient.sendMessage()` is passed as an argument to `SshSession.write()` or to any `ssh:input` handler. This invariant is covered by an architecture test.

@@ -1,28 +1,28 @@
-# tasks-architecture.md — Tareas de arquitectura y estructura
+# tasks-architecture.md — Architecture and Structure Tasks
 
-Generado: 2026-06-20. Revisión completa del proyecto.
+Generated: 2026-06-20. Full project review.
 
-## Código muerto
+## Dead Code
 
-- [x] **ARCH-01: RedactionPreview.tsx sin usar** — Eliminado.
-- [x] **ARCH-02: Interfaz SftpEntry duplicada** — Consolidada en shared/types.ts.
+- [x] **ARCH-01: RedactionPreview.tsx unused** — Removed.
+- [x] **ARCH-02: Duplicate SftpEntry interface** — Consolidated in shared/types.ts.
 
-## Acoplamiento y DI
+## Coupling and DI
 
-- [x] **ARCH-03: sftp.handlers importa manager directamente** — Inyectado como parámetro.
-- [x] **ARCH-04: AI clients instanciados a nivel de módulo** — Se instancian por petición.
+- [x] **ARCH-03: sftp.handlers imports manager directly** — Injected as parameter.
+- [x] **ARCH-04: AI clients instantiated at module level** — Instantiated per request.
 
-## Redundancia
+## Redundancy
 
-- [x] **ARCH-05: Patrón read/write duplicado** — JsonFileStore base con cache y backup.
-- [x] **ARCH-06: Error handling SFTP duplicado** — Middleware `withSftpSession()`.
-- [x] **ARCH-07: Validación de credenciales IA duplicada** — `getApiKey()`.
+- [x] **ARCH-05: Duplicate read/write pattern** — JsonFileStore base with cache and backup.
+- [x] **ARCH-06: Duplicate SFTP error handling** — `withSftpSession()` middleware.
+- [x] **ARCH-07: Duplicate AI credential validation** — `getApiKey()`.
 
-## Estructura de componentes React
+## React Component Structure
 
-- [x] **ARCH-08: Prop drilling en Terminal** — No aplica: es 1 nivel de drill (Terminal→TabBar), el coste de un Context supera el beneficio.
-- [x] **ARCH-09: Race condition en refresh de settings** — AbortController añadido.
+- [x] **ARCH-08: Prop drilling in Terminal** — Not applicable: it's 1 level of drill (Terminal→TabBar), the cost of a Context exceeds the benefit.
+- [x] **ARCH-09: Race condition in settings refresh** — AbortController added.
 
-## Configuración
+## Configuration
 
-- [x] **ARCH-10: no-floating-promises** — Añadido a ESLint.
+- [x] **ARCH-10: no-floating-promises** — Added to ESLint.

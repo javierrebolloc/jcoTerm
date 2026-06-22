@@ -1,303 +1,303 @@
-# decisions.md — Registro de decisiones técnicas
+# decisions.md — Technical Decision Log
 
-Formato: fecha · decisión · alternativas consideradas · motivo
-
----
-
-## 2026-06-19 · electron-vite como herramienta de build
-
-**Decisión:** Usar `electron-vite` en vez de webpack o configuración manual de Vite.
-
-**Alternativas:** electron-webpack, CRA + Electron, Vite puro con scripts manuales.
-
-**Motivo:** electron-vite resuelve el triple bundle (main/preload/renderer) de forma integrada, con soporte TypeScript nativo, HMR en renderer y configuración mínima. Es la opción más mantenida para proyectos Electron nuevos en 2024-2025.
+Format: date - decision - alternatives considered - rationale
 
 ---
 
-## 2026-06-19 · React para el renderer
+## 2026-06-19 - electron-vite as build tool
 
-**Decisión:** React + CSS Modules para la UI del renderer.
+**Decision:** Use `electron-vite` instead of webpack or manual Vite configuration.
 
-**Alternativas:** Vue, Svelte, HTML/CSS puro.
+**Alternatives:** electron-webpack, CRA + Electron, plain Vite with manual scripts.
 
-**Motivo:** Ecosistema maduro, buena integración con xterm.js, tipado con TypeScript. CSS Modules evita dependencias de UI extras manteniendo los estilos escopados.
-
----
-
-## 2026-06-19 · electron-store para configuración no sensible
-
-**Decisión:** `electron-store` para persistir preferencias no sensibles (tema, fuente, etc.).
-
-**Alternativas:** SQLite (mejor-sqlite3), JSON manual, localStorage del renderer.
-
-**Motivo:** electron-store es JSON cifrable, sin dependencias nativas, API simple. Para v1 es suficiente. SQLite sería sobredimensionado para la cantidad de datos que manejamos.
+**Rationale:** electron-vite solves the triple bundle (main/preload/renderer) in an integrated way, with native TypeScript support, HMR in renderer, and minimal configuration. It is the most actively maintained option for new Electron projects in 2024-2025.
 
 ---
 
-## 2026-06-19 · safeStorage para credenciales
+## 2026-06-19 - React for the renderer
 
-**Decisión:** `electron.safeStorage` para cifrar credenciales SSH y la API key de Anthropic.
+**Decision:** React + CSS Modules for the renderer UI.
 
-**Alternativas:** keytar (deprecado), node-keytar, bcrypt manual.
+**Alternatives:** Vue, Svelte, plain HTML/CSS.
 
-**Motivo:** safeStorage es la solución oficial de Electron desde v15. En Windows usa DPAPI. No requiere dependencias nativas adicionales. keytar está deprecado en favor de safeStorage.
-
----
-
-## 2026-06-19 · Vitest para tests unitarios + Playwright para E2E
-
-**Decisión:** Vitest (unitarios/integración) + Playwright con soporte Electron (E2E).
-
-**Alternativas:** Jest + Spectron (Spectron está deprecado), Jest puro.
-
-**Motivo:** Vitest es más rápido que Jest y compatible con el ecosistema Vite. Playwright tiene soporte oficial para Electron desde 2022, reemplazando a Spectron. Ambos son estándar de la industria en 2024-2025.
+**Rationale:** Mature ecosystem, good integration with xterm.js, typed with TypeScript. CSS Modules avoids extra UI dependencies while keeping styles scoped.
 
 ---
 
-## 2026-06-19 · xterm (unscoped) en lugar de @xterm/xterm
+## 2026-06-19 - electron-store for non-sensitive configuration
 
-**Decisión:** Usar `xterm@^5.3.0`, `xterm-addon-fit@^0.8.0`, `xterm-addon-web-links@^0.9.0` (paquetes sin scope).
+**Decision:** `electron-store` to persist non-sensitive preferences (theme, font, etc.).
 
-**Motivo:** Los paquetes scoped `@xterm/*` solo tienen versiones beta en npm (p. ej. `@xterm/addon-fit@0.12.0-beta.287`). Los paquetes estables son los unscoped. Se revisará en el futuro cuando los scoped estén estables.
+**Alternatives:** SQLite (better-sqlite3), manual JSON, renderer localStorage.
 
----
-
-## 2026-06-19 · SshSession con factory inyectable para tests
-
-**Decisión:** El constructor de `SshSession` acepta un parámetro opcional `clientFactory: () => Client` con un default que crea el ssh2 Client real.
-
-**Motivo:** Permite inyectar un mock Client en tests sin necesidad de mockear todo el módulo `ssh2`. Patrón de dependency injection limpio y sin magia de vi.mock.
+**Rationale:** electron-store is encryptable JSON, no native dependencies, simple API. Sufficient for v1. SQLite would be overkill for the amount of data we handle.
 
 ---
 
-## 2026-06-19 · Capa de proveedor de IA intercambiable (AIProvider interface)
+## 2026-06-19 - safeStorage for credentials
 
-**Decisión:** Introducir la interfaz `AIProvider` en `src/main/ai/AIProvider.ts` con implementaciones `AnthropicClient` y `GeminiClient`. El handler IPC `ai:sendMessage` selecciona el cliente leyendo `SettingsStore.aiProvider` en cada llamada. El renderer nunca sabe qué proveedor está activo; solo envía el mensaje.
+**Decision:** `electron.safeStorage` to encrypt SSH credentials and the Anthropic API key.
 
-**Alternativas:** Un único cliente con flag interno; dos canales IPC separados (`ai:sendAnthopic`, `ai:sendGemini`); pasar el proveedor como campo del request desde el renderer.
+**Alternatives:** keytar (deprecated), node-keytar, manual bcrypt.
 
-**Motivo:** Encapsula toda la lógica de cada proveedor (endpoint, formato, manejo de errores, cuota) en su implementación. Cambiar el proveedor activo es un cambio de configuración, no de código. El renderer no necesita saber qué backend usa, lo que mantiene la superficie de API IPC mínima.
-
----
-
-## 2026-06-19 · Gemini via fetch nativo + garantía de coste cero
-
-**Decisión:** `GeminiClient` usa `globalThis.fetch` (disponible en Node 18+ / Electron 29) en lugar del SDK oficial de Google, para poder leer los headers HTTP de cuota directamente. Reintentos con backoff exponencial (×3) antes de marcar el 429 como agotamiento real. La clave API se cifra con DPAPI igual que la de Anthropic.
-
-**Alternativas:** SDK `@google/generative-ai`; proxy en un servidor propio para ocultar la clave; no reintentar en 429.
-
-**Motivo:** (a) El SDK de Google no expone los headers HTTP brutos que necesitamos para leer la cuota restante. (b) Los "429 fantasma" conocidos en modelos Gemini 2.5 requieren reintentos transparentes. (c) Mantener la clave en el proceso main con DPAPI garantiza coste cero: sin cuenta de facturación en Google, la API rechazará cualquier petición más allá del tier gratuito incluso si alguien obtuviera la clave.
+**Rationale:** safeStorage is Electron's official solution since v15. On Windows it uses DPAPI. It does not require additional native dependencies. keytar is deprecated in favor of safeStorage.
 
 ---
 
-## 2026-06-19 · Copy/paste de terminal via Clipboard API del renderer
+## 2026-06-19 - Vitest for unit tests + Playwright for E2E
 
-**Decisión:** El copy (mouseup → `term.getSelection()` → `navigator.clipboard.writeText()`) y paste (contextmenu → `navigator.clipboard.readText()` → `sendInput`) se implementan íntegramente en el renderer sin IPC adicional.
+**Decision:** Vitest (unit/integration) + Playwright with Electron support (E2E).
 
-**Alternativas:** Exponer `clipboard.readText/writeText` de Electron via IPC; usar `clipboard` module de Electron en main.
+**Alternatives:** Jest + Spectron (Spectron is deprecated), plain Jest.
 
-**Motivo:** `navigator.clipboard` es la Clipboard API estándar de Chromium, disponible en el renderer de Electron sin necesidad de Node.js. No requiere exponer nuevos canales IPC ni permisos adicionales. El renderer ya tiene acceso legítimo al portapapeles del usuario (es su propia ventana). Añadir IPC solo añadiría latencia y complejidad sin beneficio de seguridad.
-
----
-
-## 2026-06-19 · Eliminación del modal RedactionPreview del flujo de envío
-
-**Decisión:** El usuario hace clic en Enviar y el mensaje se envía directamente sin paso de confirmación. El fichero `RedactionPreview.tsx` permanece en disco pero ya no se usa en `AiChat`.
-
-**Alternativas:** Mantener el modal de preview; hacerlo opcional via setting.
-
-**Motivo:** El usuario pidió eliminar el paso intermedio. La redacción de secretos sigue ocurriendo en main (invariante de seguridad mantenida). El aviso de qué se envía ahora está en el texto de ayuda del input ("Se enviarán las últimas N líneas como contexto").
+**Rationale:** Vitest is faster than Jest and compatible with the Vite ecosystem. Playwright has had official Electron support since 2022, replacing Spectron. Both are industry standard in 2024-2025.
 
 ---
 
-## 2026-06-19 · `aiContextLines` como setting para controlar el coste de tokens
+## 2026-06-19 - xterm (unscoped) instead of @xterm/xterm
 
-**Decisión:** Nuevo campo `aiContextLines: number` (default 100) en `StoredSettings` / `AppSettings`. AiChat recibe el valor como prop, toma el snapshot completo del terminal y aplica `.split('\n').slice(-N).join('\n')` antes de enviar.
+**Decision:** Use `xterm@^5.3.0`, `xterm-addon-fit@^0.8.0`, `xterm-addon-web-links@^0.9.0` (unscoped packages).
 
-**Alternativas:** Valor fijo hardcodeado; enviar siempre el contenido visible completo; limitar en el proceso main.
-
-**Motivo:** El número óptimo de líneas depende del caso de uso del usuario (debugging vs. monitoring vs. revisión de logs). Un campo configurable en Ajustes permite ajustarlo sin tocar código. Aplicar el slice en el renderer (antes de IPC) evita transferir datos innecesarios al proceso main.
+**Rationale:** The scoped `@xterm/*` packages only have beta versions on npm (e.g. `@xterm/addon-fit@0.12.0-beta.287`). The stable packages are the unscoped ones. This will be revisited in the future when the scoped packages are stable.
 
 ---
 
-## 2026-06-19 · fast-fail en GeminiClient cuando `limit: 0` en todos los cupos
+## 2026-06-19 - SshSession with injectable factory for tests
 
-**Decisión:** Si el error 429 tiene todos los `limit: N` con N=0, se lanza `GeminiQuotaError` inmediatamente sin reintentar.
+**Decision:** The `SshSession` constructor accepts an optional `clientFactory: () => Client` parameter with a default that creates the real ssh2 Client.
 
-**Alternativas:** Reintentar igual (comportamiento anterior); distinguir por código de error.
-
-**Motivo:** `limit: 0` significa que el proyecto de Google no tiene cupo asignado para ese modelo — no es agotamiento temporal sino configuración incorrecta. Reintentar 3 veces con esperas de 30s/60s/60s (según sugería la API) era engañoso y bloqueaba al usuario ~150s antes de dar el mismo error.
+**Rationale:** Allows injecting a mock Client in tests without needing to mock the entire `ssh2` module. Clean dependency injection pattern without vi.mock magic.
 
 ---
 
-## 2026-06-19 · Garantía de solo lectura de IA por ausencia de canal
+## 2026-06-19 - Interchangeable AI provider layer (AIProvider interface)
 
-**Decisión:** La restricción de que la IA no puede escribir en SSH se implementa por ausencia de canal, no por validación.
+**Decision:** Introduce the `AIProvider` interface in `src/main/ai/AIProvider.ts` with `AnthropicClient` and `GeminiClient` implementations. The `ai:sendMessage` IPC handler selects the client by reading `SettingsStore.aiProvider` on each call. The renderer never knows which provider is active; it only sends the message.
 
-**Motivo:** No existe en el código ningún handler IPC ni función que conecte el output de AnthropicClient con el input de SshSession. La garantía es estructural: no se puede eludir sin añadir código deliberadamente. Esto es más robusto que cualquier validación o flag de permiso.
+**Alternatives:** A single client with an internal flag; two separate IPC channels (`ai:sendAnthopic`, `ai:sendGemini`); passing the provider as a field of the request from the renderer.
 
----
-
-## 2026-06-20 · Verificación de host key SSH con KnownHostsStore
-
-**Decisión:** Implementar verificación de host key usando un store JSON propio (`known-hosts.json`) en vez de parsear `~/.ssh/known_hosts` de OpenSSH.
-
-**Alternativas:** Parsear `known_hosts` de OpenSSH; usar una librería como `sshpk`; confiar en ssh2 sin verificación.
-
-**Motivo:** El formato `known_hosts` de OpenSSH es complejo (hashed hostnames, múltiples algoritmos, opciones) y parsearlo correctamente es propenso a errores. Un store JSON propio es más simple, auditable, y permite UX propia (listar/eliminar desde Ajustes). El fingerprint se calcula como SHA-256 del key buffer, que es el estándar moderno.
+**Rationale:** Encapsulates all logic for each provider (endpoint, format, error handling, quota) in its implementation. Changing the active provider is a configuration change, not a code change. The renderer does not need to know which backend is in use, keeping the IPC API surface minimal.
 
 ---
 
-## 2026-06-20 · JsonFileStore<T> como clase base para stores JSON
+## 2026-06-19 - Gemini via native fetch + zero-cost guarantee
 
-**Decisión:** Extraer una clase base `JsonFileStore<T>` que implementa CRUD genérico con cache en memoria, escritura atómica (tmp+rename) y backup automático de ficheros corruptos.
+**Decision:** `GeminiClient` uses `globalThis.fetch` (available in Node 18+ / Electron 29) instead of the official Google SDK, in order to read HTTP quota headers directly. Retries with exponential backoff (x3) before marking the 429 as actual exhaustion. The API key is encrypted with DPAPI just like the Anthropic key.
 
-**Alternativas:** Mantener la duplicación en FolderStore y NamedCredentialStore; usar una librería de persistencia.
+**Alternatives:** `@google/generative-ai` SDK; proxy on a self-hosted server to hide the key; no retry on 429.
 
-**Motivo:** FolderStore y NamedCredentialStore tenían código idéntico de lectura/escritura JSON. La clase base elimina la duplicación y añade protecciones (atomicidad, backup) sin dependencias externas. CredentialStore no extiende de ella porque usa un formato distinto (cifrado DPAPI), pero se le aplicó cache y atomic write por separado.
-
----
-
-## 2026-06-20 · Split view con panes siempre montados
-
-**Decisión:** En Terminal.tsx, todos los TerminalPane se renderizan siempre dentro de un único contenedor. El layout (normal tabs vs grid split) se controla cambiando la clase CSS del contenedor, nunca desmontando/remontando panes.
-
-**Alternativas:** Dos ramas condicionales con panes separados (diseño original); portales React.
-
-**Motivo:** El diseño original con dos ramas (`{!inSplitMode && ...}` / `{inSplitMode && ...}`) causaba que React desmontara todos los panes al cambiar de modo y los remontara en la nueva rama, destruyendo los terminales xterm.js y su buffer. Con un único contenedor, React reconcilia por `key` y mantiene los panes vivos.
+**Rationale:** (a) The Google SDK does not expose the raw HTTP headers needed to read remaining quota. (b) The known "phantom 429s" on Gemini 2.5 models require transparent retries. (c) Keeping the key in the main process with DPAPI guarantees zero cost: without a billing account on Google, the API will reject any request beyond the free tier even if someone obtained the key.
 
 ---
 
-## 2026-06-20 · IpcRateLimiter para handlers críticos
+## 2026-06-19 - Terminal copy/paste via renderer Clipboard API
 
-**Decisión:** Implementar un rate limiter simple (sliding window) en el proceso main para los handlers de SSH connect (10/min) y AI sendMessage (20/min).
+**Decision:** Copy (mouseup -> `term.getSelection()` -> `navigator.clipboard.writeText()`) and paste (contextmenu -> `navigator.clipboard.readText()` -> `sendInput`) are implemented entirely in the renderer without additional IPC.
 
-**Alternativas:** Sin rate limiting (diseño original); rate limiting en el renderer; middleware genérico para todos los handlers.
+**Alternatives:** Expose Electron's `clipboard.readText/writeText` via IPC; use Electron's `clipboard` module in main.
 
-**Motivo:** Un renderer comprometido podría spamear conexiones SSH (DoS al servidor remoto) o peticiones IA (agotamiento de cuota/coste). El rate limiter en main es la capa correcta porque el renderer no es de confianza. Se aplica solo a los handlers con impacto externo, no a operaciones locales como listar sesiones.
-
----
-
-## 2026-06-21 · Streaming de respuestas IA via IPC push events
-
-**Decisión:** Las respuestas de IA se envían incrementalmente via `webContents.send` (canales `ai:streamChunk`, `ai:streamEnd`, `ai:streamError`). El handler `ai:sendMessage` valida, inicia el stream en background, y retorna `{ success: true }` inmediatamente. Anthropic usa `client.messages.stream()`, Gemini usa `streamGenerateContent?alt=sse`.
-
-**Alternativas:** Mantener request/response completo (esperar toda la respuesta antes de mostrar); WebSocket separado; devolver un ReadableStream serializado.
-
-**Motivo:** Los push events via `webContents.send` son el patrón natural de Electron para streaming main→renderer (ya usado para `ssh:output`). No requiere infraestructura adicional. La interfaz `AIStreamCallbacks` desacopla el transporte del proveedor.
+**Rationale:** `navigator.clipboard` is Chromium's standard Clipboard API, available in the Electron renderer without needing Node.js. It does not require exposing new IPC channels or additional permissions. The renderer already has legitimate access to the user's clipboard (it is its own window). Adding IPC would only add latency and complexity without security benefit.
 
 ---
 
-## 2026-06-21 · SSH Agent via named pipe de OpenSSH
+## 2026-06-19 - Removal of RedactionPreview modal from the send flow
 
-**Decisión:** La auth via SSH Agent usa `\\\\.\\pipe\\openssh-ssh-agent` como agente por defecto en Windows, con fallback a `SSH_AUTH_SOCK` si está definido.
+**Decision:** The user clicks Send and the message is sent directly without a confirmation step. The `RedactionPreview.tsx` file remains on disk but is no longer used in `AiChat`.
 
-**Alternativas:** Usar solo `SSH_AUTH_SOCK`; usar Pageant (PuTTY); requerir que el usuario configure la ruta.
+**Alternatives:** Keep the preview modal; make it optional via a setting.
 
-**Motivo:** Windows 10+ incluye OpenSSH Agent como servicio del sistema. El named pipe `openssh-ssh-agent` es el estándar de facto. ssh2 lo soporta nativamente via el campo `agent` de `ConnectConfig`. Si el usuario tiene un agente no estándar, puede configurarlo via `SSH_AUTH_SOCK`.
-
----
-
-## 2026-06-21 · Auto-recovery con electron-store separado
-
-**Decisión:** El estado de tabs (savedSessionId + label) se guarda en `window-state.json` (electron-store separado de settings) cada vez que cambia. Al iniciar, se lee, se limpia inmediatamente, y se reconectan las sesiones guardadas.
-
-**Alternativas:** Guardar en SettingsStore; guardar en localStorage del renderer; guardar en un fichero JSON manual.
-
-**Motivo:** Un store separado evita contaminar settings con datos efímeros. Limpiar al leer impide loops de reconexión fallida. Solo se guardan tabs con `savedSessionId` (las conexiones directas no se pueden recuperar sin credenciales).
+**Rationale:** The user requested removing the intermediate step. Secret redaction still occurs in main (security invariant maintained). The notice about what is being sent is now in the input's help text ("The last N lines will be sent as context").
 
 ---
 
-## 2026-06-21 · Gestor SFTP dual-pane con multi-tab
+## 2026-06-19 - `aiContextLines` as a setting to control token cost
 
-**Decisión:** Implementar un gestor de ficheros SFTP estilo FileZilla con panel local (izquierda) y remoto (derecha), integrado como modo alternativo al terminal (viewMode toggle). Soporta múltiples conexiones SFTP simultáneas via pestañas.
+**Decision:** New field `aiContextLines: number` (default 100) in `StoredSettings` / `AppSettings`. AiChat receives the value as a prop, takes the full terminal snapshot, and applies `.split('\n').slice(-N).join('\n')` before sending.
 
-**Alternativas:** Panel derecho simple; ventana separada; integrar en el FileExplorer existente.
+**Alternatives:** Hardcoded fixed value; always send the full visible content; limit in the main process.
 
-**Motivo:** El reemplazo del area principal ofrece el máximo espacio para los dos paneles. Las pestañas permiten trabajar con múltiples servidores. Las transferencias se ejecutan en background en el main process con progreso via IPC push.
-
----
-
-## 2026-06-21 · i18n con JSON plano sin dependencias externas
-
-**Decisión:** Sistema i18n propio con `t(key, params?)`, JSON plano con claves dot-separated, React Context para re-render. Sin i18next ni otras librerías.
-
-**Alternativas:** i18next + react-i18next; react-intl; paquete propio con objetos anidados.
-
-**Motivo:** Para 2 idiomas y ~250 claves, una librería completa es sobredimensionada. El JSON plano es grep-friendly, el motor `t()` son 15 líneas, y funciona idénticamente en main y renderer. El Context triggerea re-renders sin prop drilling.
+**Rationale:** The optimal number of lines depends on the user's use case (debugging vs. monitoring vs. log review). A configurable field in Settings allows adjusting it without touching code. Applying the slice in the renderer (before IPC) avoids transferring unnecessary data to the main process.
 
 ---
 
-## 2026-06-21 · Multi-ejecución en split view
+## 2026-06-19 - Fast-fail in GeminiClient when `limit: 0` on all quotas
 
-**Decisión:** Cuando multi-ejecución está activa, el `onData` de xterm replica el input a todos los sessionIds del split. Cada terminal puede excluirse individualmente via un toggle en la barra de estado.
+**Decision:** If the 429 error has all `limit: N` with N=0, a `GeminiQuotaError` is thrown immediately without retrying.
 
-**Alternativas:** Input bar separada que envía comandos; middleware en el main process.
+**Alternatives:** Retry anyway (previous behavior); distinguish by error code.
 
-**Motivo:** Interceptar `onData` en el renderer es lo más simple y no requiere cambios en el main. El array de targets se actualiza via ref para que la closure del mount effect siempre tenga los targets actuales. La exclusión individual permite control fino.
-
----
-
-## 2026-06-21 · Diálogos de confirmación custom (no confirm() nativo)
-
-**Decisión:** `ConfirmProvider` + `useConfirm()` hook reemplazan todos los `window.confirm()` con diálogos styled que respetan el tema oscuro de la app.
-
-**Motivo:** `window.confirm()` muestra un diálogo nativo de Windows que rompe la estética de la app. El Context + Promise pattern permite `await confirm(msg)` desde cualquier componente sin prop drilling.
+**Rationale:** `limit: 0` means the Google project has no quota allocated for that model — it is not temporary exhaustion but incorrect configuration. Retrying 3 times with waits of 30s/60s/60s (as the API suggested) was misleading and blocked the user ~150s before giving the same error.
 
 ---
 
-## 2026-06-21 · Licencia MIT
+## 2026-06-19 - AI read-only guarantee by absence of channel
 
-**Decisión:** El proyecto se licencia bajo MIT. Fichero LICENSE en la raíz, `license: "MIT"` en package.json, autor Javier Rebollo.
+**Decision:** The restriction that AI cannot write to SSH is implemented by absence of channel, not by validation.
 
-**Motivo:** MIT es la licencia más permisiva y estándar para software libre. Permite uso comercial, modificación y redistribución sin restricciones. Compatible con todas las dependencias del proyecto.
-
----
-
-## 2026-06-22 · Splash screen como componente renderer
-
-**Decisión:** Splash screen de 5 segundos implementado como componente React (`SplashScreen.tsx`) que se muestra antes de la app principal, controlado por estado `AppPhase` en `App.tsx`.
-
-**Alternativas:** Splash window separada en main process; BrowserWindow splash nativo.
-
-**Motivo:** Mantenerlo como componente React en el mismo renderer simplifica la gestión del ciclo de vida. No hay overhead de crear/cerrar una ventana adicional. La transición a la lock screen es instantánea.
+**Rationale:** There is no IPC handler or function in the code that connects AnthropicClient output to SshSession input. The guarantee is structural: it cannot be bypassed without deliberately adding code. This is more robust than any validation or permission flag.
 
 ---
 
-## 2026-06-22 · Contraseña de bloqueo con PBKDF2
+## 2026-06-20 - SSH host key verification with KnownHostsStore
 
-**Decisión:** La contraseña de bloqueo se hashea con `crypto.pbkdf2Sync` (100.000 iteraciones, SHA-512, salt aleatorio de 32 bytes). Se almacena `{ salt, hash, iterations }` en `lock.json` en userData. La verificación usa `crypto.timingSafeEqual`.
+**Decision:** Implement host key verification using a custom JSON store (`known-hosts.json`) instead of parsing OpenSSH's `~/.ssh/known_hosts`.
 
-**Alternativas:** Almacenar la contraseña cifrada con safeStorage; bcrypt; argon2.
+**Alternatives:** Parse OpenSSH `known_hosts`; use a library like `sshpk`; trust ssh2 without verification.
 
-**Motivo:** PBKDF2 está disponible en Node.js sin dependencias externas. 100K iteraciones con SHA-512 es resistente a fuerza bruta. `timingSafeEqual` previene timing attacks. No se usa safeStorage porque el propósito no es ocultar la contraseña del usuario del sistema (eso sería circular), sino verificar que quien abre la app la conoce.
-
----
-
-## 2026-06-22 · Export/import de sesiones sin credenciales
-
-**Decisión:** La exportación guarda sesiones + carpetas en un JSON portátil. Las credenciales (passwords, claves privadas, namedCredentialId) no se incluyen. La importación genera nuevos UUIDs para evitar colisiones y remapea los folderIds.
-
-**Alternativas:** Exportar con credenciales cifradas; exportar solo sesiones sin carpetas.
-
-**Motivo:** Las credenciales están cifradas con AES-256-GCM y no son portables sin la lock password. Exportar carpetas permite mantener la organización. Generar nuevos IDs en importación evita sobrescrituras accidentales.
+**Rationale:** The OpenSSH `known_hosts` format is complex (hashed hostnames, multiple algorithms, options) and parsing it correctly is error-prone. A custom JSON store is simpler, auditable, and allows custom UX (list/delete from Settings). The fingerprint is calculated as SHA-256 of the key buffer, which is the modern standard.
 
 ---
 
-## 2026-06-22 · Reemplazo de safeStorage (DPAPI) por AES-256-GCM derivado de lock password
+## 2026-06-20 - JsonFileStore<T> as base class for JSON stores
 
-**Decisión:** Todas las credenciales se cifran con AES-256-GCM. La clave de cifrado (32 bytes) se deriva de la lock password del usuario via PBKDF2 (100K iteraciones, SHA-512, salt aleatorio independiente del salt de verificación). La clave solo existe en memoria. safeStorage/DPAPI eliminado completamente.
+**Decision:** Extract a base class `JsonFileStore<T>` that implements generic CRUD with in-memory cache, atomic write (tmp+rename), and automatic backup of corrupt files.
 
-**Alternativas:** Mantener DPAPI (no portable); cifrado híbrido (DPAPI + AES fallback); bcrypt/argon2 para derivar la clave.
+**Alternatives:** Maintain duplication in FolderStore and NamedCredentialStore; use a persistence library.
 
-**Motivo:** (a) DPAPI ata las credenciales al usuario+máquina de Windows → imposibilita portabilidad. (b) Derivar la clave de la lock password garantiza que sin contraseña no hay acceso a credenciales. (c) Cambiar la contraseña invalida automáticamente las credenciales antiguas (salt diferente → clave diferente). (d) PBKDF2+AES-256-GCM son estándar, sin dependencias externas, disponibles en Node.js crypto. (e) Dos salts separados (verificación + cifrado) evitan que el hash de verificación filtre información sobre la clave de cifrado.
+**Rationale:** FolderStore and NamedCredentialStore had identical JSON read/write code. The base class eliminates duplication and adds protections (atomicity, backup) without external dependencies. CredentialStore does not extend it because it uses a different format (DPAPI encryption), but it had cache and atomic write applied separately.
 
 ---
 
-## 2026-06-22 · Modo portable con fichero marcador
+## 2026-06-20 - Split view with always-mounted panes
 
-**Decisión:** Si existe un fichero `portable` junto al ejecutable, la app redirige `app.setPath('userData', './data/')` para almacenar todo junto al .exe. La detección se ejecuta antes de `app.whenReady()` para que electron-store y todos los stores usen la ruta portable.
+**Decision:** In Terminal.tsx, all TerminalPanes are always rendered inside a single container. The layout (normal tabs vs grid split) is controlled by changing the container's CSS class, never by unmounting/remounting panes.
 
-**Alternativas:** Flag de línea de comandos; variable de entorno; siempre portable.
+**Alternatives:** Two conditional branches with separate panes (original design); React portals.
 
-**Motivo:** Un fichero marcador es el patrón estándar de apps portables en Windows (usado por Firefox Portable, VSCode Portable, etc.). Permite que el mismo binario funcione como instalado o portable sin recompilación. La detección temprana garantiza que todos los stores se inicializan con la ruta correcta.
+**Rationale:** The original design with two branches (`{!inSplitMode && ...}` / `{inSplitMode && ...}`) caused React to unmount all panes when switching modes and remount them in the new branch, destroying xterm.js terminals and their buffers. With a single container, React reconciles by `key` and keeps panes alive.
+
+---
+
+## 2026-06-20 - IpcRateLimiter for critical handlers
+
+**Decision:** Implement a simple rate limiter (sliding window) in the main process for SSH connect (10/min) and AI sendMessage (20/min) handlers.
+
+**Alternatives:** No rate limiting (original design); rate limiting in the renderer; generic middleware for all handlers.
+
+**Rationale:** A compromised renderer could spam SSH connections (DoS to the remote server) or AI requests (quota/cost exhaustion). The rate limiter in main is the correct layer because the renderer is untrusted. It is applied only to handlers with external impact, not to local operations like listing sessions.
+
+---
+
+## 2026-06-21 - Streaming AI responses via IPC push events
+
+**Decision:** AI responses are sent incrementally via `webContents.send` (channels `ai:streamChunk`, `ai:streamEnd`, `ai:streamError`). The `ai:sendMessage` handler validates, starts the stream in background, and returns `{ success: true }` immediately. Anthropic uses `client.messages.stream()`, Gemini uses `streamGenerateContent?alt=sse`.
+
+**Alternatives:** Keep full request/response (wait for the entire response before displaying); separate WebSocket; return a serialized ReadableStream.
+
+**Rationale:** Push events via `webContents.send` are Electron's natural pattern for main->renderer streaming (already used for `ssh:output`). It requires no additional infrastructure. The `AIStreamCallbacks` interface decouples transport from provider.
+
+---
+
+## 2026-06-21 - SSH Agent via OpenSSH named pipe
+
+**Decision:** Auth via SSH Agent uses `\\.\pipe\openssh-ssh-agent` as the default agent on Windows, with fallback to `SSH_AUTH_SOCK` if defined.
+
+**Alternatives:** Use only `SSH_AUTH_SOCK`; use Pageant (PuTTY); require the user to configure the path.
+
+**Rationale:** Windows 10+ includes OpenSSH Agent as a system service. The `openssh-ssh-agent` named pipe is the de facto standard. ssh2 supports it natively via the `agent` field of `ConnectConfig`. If the user has a non-standard agent, they can configure it via `SSH_AUTH_SOCK`.
+
+---
+
+## 2026-06-21 - Auto-recovery with separate electron-store
+
+**Decision:** Tab state (savedSessionId + label) is saved in `window-state.json` (separate electron-store from settings) every time it changes. On startup, it is read, immediately cleared, and saved sessions are reconnected.
+
+**Alternatives:** Store in SettingsStore; store in renderer localStorage; store in a manual JSON file.
+
+**Rationale:** A separate store avoids contaminating settings with ephemeral data. Clearing on read prevents failed reconnection loops. Only tabs with `savedSessionId` are saved (direct connections cannot be recovered without credentials).
+
+---
+
+## 2026-06-21 - Dual-pane SFTP manager with multi-tab
+
+**Decision:** Implement a FileZilla-style SFTP file manager with local panel (left) and remote panel (right), integrated as an alternative mode to the terminal (viewMode toggle). Supports multiple simultaneous SFTP connections via tabs.
+
+**Alternatives:** Simple right panel; separate window; integrate into the existing FileExplorer.
+
+**Rationale:** Replacing the main area provides maximum space for both panels. Tabs allow working with multiple servers. Transfers run in background in the main process with progress via IPC push.
+
+---
+
+## 2026-06-21 - i18n with plain JSON without external dependencies
+
+**Decision:** Custom i18n system with `t(key, params?)`, plain JSON with dot-separated keys, React Context for re-render. No i18next or other libraries.
+
+**Alternatives:** i18next + react-i18next; react-intl; custom package with nested objects.
+
+**Rationale:** For 2 languages and ~250 keys, a full library is overkill. Plain JSON is grep-friendly, the `t()` engine is 15 lines, and it works identically in main and renderer. The Context triggers re-renders without prop drilling.
+
+---
+
+## 2026-06-21 - Multi-execution in split view
+
+**Decision:** When multi-execution is active, xterm's `onData` replicates input to all sessionIds in the split. Each terminal can be individually excluded via a toggle in the status bar.
+
+**Alternatives:** Separate input bar that sends commands; middleware in the main process.
+
+**Rationale:** Intercepting `onData` in the renderer is the simplest approach and requires no changes in main. The target array is updated via ref so the mount effect's closure always has the current targets. Individual exclusion allows fine-grained control.
+
+---
+
+## 2026-06-21 - Custom confirmation dialogs (not native confirm())
+
+**Decision:** `ConfirmProvider` + `useConfirm()` hook replace all `window.confirm()` calls with styled dialogs that respect the app's dark theme.
+
+**Rationale:** `window.confirm()` shows a native Windows dialog that breaks the app's aesthetics. The Context + Promise pattern allows `await confirm(msg)` from any component without prop drilling.
+
+---
+
+## 2026-06-21 - MIT License
+
+**Decision:** The project is licensed under MIT. LICENSE file at the root, `license: "MIT"` in package.json, author Javier Rebollo.
+
+**Rationale:** MIT is the most permissive and standard license for open-source software. It allows commercial use, modification, and redistribution without restrictions. Compatible with all project dependencies.
+
+---
+
+## 2026-06-22 - Splash screen as renderer component
+
+**Decision:** 5-second splash screen implemented as a React component (`SplashScreen.tsx`) displayed before the main app, controlled by `AppPhase` state in `App.tsx`.
+
+**Alternatives:** Separate splash window in main process; native BrowserWindow splash.
+
+**Rationale:** Keeping it as a React component in the same renderer simplifies lifecycle management. There is no overhead of creating/closing an additional window. The transition to the lock screen is instant.
+
+---
+
+## 2026-06-22 - Lock password with PBKDF2
+
+**Decision:** The lock password is hashed with `crypto.pbkdf2Sync` (100,000 iterations, SHA-512, 32-byte random salt). `{ salt, hash, iterations }` is stored in `lock.json` in userData. Verification uses `crypto.timingSafeEqual`.
+
+**Alternatives:** Store the password encrypted with safeStorage; bcrypt; argon2.
+
+**Rationale:** PBKDF2 is available in Node.js without external dependencies. 100K iterations with SHA-512 is resistant to brute force. `timingSafeEqual` prevents timing attacks. safeStorage is not used because the purpose is not to hide the user's password from the system (that would be circular), but to verify that whoever opens the app knows it.
+
+---
+
+## 2026-06-22 - Session export/import without credentials
+
+**Decision:** Export saves sessions + folders in a portable JSON file. Credentials (passwords, private keys, namedCredentialId) are not included. Import generates new UUIDs to avoid collisions and remaps folderIds.
+
+**Alternatives:** Export with encrypted credentials; export only sessions without folders.
+
+**Rationale:** Credentials are encrypted with AES-256-GCM and are not portable without the lock password. Exporting folders preserves the organization. Generating new IDs on import prevents accidental overwrites.
+
+---
+
+## 2026-06-22 - Replacement of safeStorage (DPAPI) with AES-256-GCM derived from lock password
+
+**Decision:** All credentials are encrypted with AES-256-GCM. The encryption key (32 bytes) is derived from the user's lock password via PBKDF2 (100K iterations, SHA-512, random salt independent from the verification salt). The key only exists in memory. safeStorage/DPAPI completely removed.
+
+**Alternatives:** Keep DPAPI (not portable); hybrid encryption (DPAPI + AES fallback); bcrypt/argon2 to derive the key.
+
+**Rationale:** (a) DPAPI ties credentials to the Windows user+machine — makes portability impossible. (b) Deriving the key from the lock password guarantees that without the password there is no access to credentials. (c) Changing the password automatically invalidates old credentials (different salt -> different key). (d) PBKDF2+AES-256-GCM are standard, no external dependencies, available in Node.js crypto. (e) Two separate salts (verification + encryption) prevent the verification hash from leaking information about the encryption key.
+
+---
+
+## 2026-06-22 - Portable mode with marker file
+
+**Decision:** If a `portable` file exists next to the executable, the app redirects `app.setPath('userData', './data/')` to store everything alongside the .exe. Detection runs before `app.whenReady()` so that electron-store and all stores use the portable path.
+
+**Alternatives:** Command-line flag; environment variable; always portable.
+
+**Rationale:** A marker file is the standard pattern for portable apps on Windows (used by Firefox Portable, VSCode Portable, etc.). It allows the same binary to work as installed or portable without recompilation. Early detection guarantees that all stores are initialized with the correct path.

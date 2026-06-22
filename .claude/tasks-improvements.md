@@ -1,22 +1,22 @@
-# tasks-improvements.md — Mejoras y features propuestas
+# tasks-improvements.md — Proposed Improvements and Features
 
-Generado: 2026-06-20. Revisión completa del proyecto.
+Generated: 2026-06-20. Full project review.
 
 ## UX
 
-- [x] **UX-01: Streaming de respuestas IA** — Resuelto: IPC streaming via `ai:streamChunk/End/Error`, `sendMessageStream` en ambos providers.
-- [x] **UX-02: Estados de carga durante conexión SSH** — Resuelto: `connectingSessionId` + spinner en SessionItem.
-- [x] **UX-03: Mensajes de error más informativos** — Resuelto: SFTP incluye ruta, Gemini RPM/TPM indica reset, SSH Agent error.
-- [x] **UX-04: Modelo Anthropic configurable en Ajustes** — Resuelto: `anthropicModel` en SettingsStore + selector en UI.
-- [x] **UX-05: Auto-recovery de sesión tras crash** — Resuelto: `window-state.json` con tabs, auto-reconnect al iniciar.
+- [x] **UX-01: AI response streaming** — Resolved: IPC streaming via `ai:streamChunk/End/Error`, `sendMessageStream` in both providers.
+- [x] **UX-02: Loading states during SSH connection** — Resolved: `connectingSessionId` + spinner in SessionItem.
+- [x] **UX-03: More informative error messages** — Resolved: SFTP includes path, Gemini RPM/TPM indicates reset, SSH Agent error.
+- [x] **UX-04: Configurable Anthropic model in Settings** — Resolved: `anthropicModel` in SettingsStore + UI selector.
+- [x] **UX-05: Session auto-recovery after crash** — Resolved: `window-state.json` with tabs, auto-reconnect on start.
 
-## Funcionalidad
+## Functionality
 
-- [x] **FEAT-01: Integración con SSH Agent (Windows OpenSSH Agent)** — Resuelto: `authMethod: 'agent'`, pipe OpenSSH Agent.
-- [x] **FEAT-02: max_tokens dinámico para Anthropic y Gemini** — Resuelto: `calculateMaxTokens(contextLength)`, 1024-4096.
-- [x] **FEAT-03: Log de redacción detallado** — Resuelto: `matchedTypes` en RedactorResult, log con tipos.
+- [x] **FEAT-01: SSH Agent integration (Windows OpenSSH Agent)** — Resolved: `authMethod: 'agent'`, OpenSSH Agent pipe.
+- [x] **FEAT-02: Dynamic max_tokens for Anthropic and Gemini** — Resolved: `calculateMaxTokens(contextLength)`, 1024-4096.
+- [x] **FEAT-03: Detailed redaction log** — Resolved: `matchedTypes` in RedactorResult, log with types.
 
 ## DevOps
 
-- [x] **DEVOPS-01: npm audit en CI/build** — Resuelto: script `npm run audit`.
-- [x] **DEVOPS-02: Actualizar dependencias** — Resuelto: `@anthropic-ai/sdk ^0.105.0`, `electron-store ^8.2.0`. React/Electron/ESLint major bumps pendientes (migración separada).
+- [x] **DEVOPS-01: npm audit in CI/build** — Resolved: `npm run audit` script.
+- [x] **DEVOPS-02: Update dependencies** — Resolved: `@anthropic-ai/sdk ^0.105.0`, `electron-store ^8.2.0`. React/Electron/ESLint major bumps pending (separate migration).
