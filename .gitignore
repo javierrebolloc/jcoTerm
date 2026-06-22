@@ -8,3 +8,5 @@ npm-debug.log*
 .env
 .env.local
 coverage/
+.claude/
+CLAUDE.md
