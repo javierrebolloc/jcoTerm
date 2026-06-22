@@ -22,6 +22,7 @@
   "session.emptyFolder": "Vacía",
   "session.dropHere": "Soltar aquí",
   "session.connecting": "Conectando...",
+  "session.connect.connecting": "Conectando...",
   "session.tooltip": "{user}@{host}:{port} — Doble clic para conectar",
 
   "session.save.titleNew": "Nueva sesión",
@@ -199,6 +200,11 @@
   "settings.about.logFile": "Fichero de log",
   "settings.about.logNote": "La aplicación registra eventos en este fichero. Ábrelo para diagnosticar problemas.",
   "settings.about.openLog": "Abrir log",
+  "settings.ai.recommended": "recomendado",
+  "settings.ai.fast": "rapido",
+  "settings.ai.maximum": "maximo",
+  "settings.ai.keySaved": "guardada",
+  "settings.general.restartNotice": "Reinicia la aplicacion para aplicar el cambio de idioma.",
 
   "splash.title": "jcoTerm",
 
@@ -229,6 +235,10 @@
   "common.edit": "Editar",
   "common.connect": "Conectar",
   "common.close": "Cerrar",
+  "common.error": "Error",
+  "common.ok": "Aceptar",
+  "common.collapse": "Colapsar",
+  "common.expand": "Expandir",
   "common.loading": "Cargando...",
   "common.connectionError": "Error de conexión",
   "common.rename": "Renombrar",

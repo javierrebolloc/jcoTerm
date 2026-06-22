@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import type { SavedSessionWithStatus } from '../../../shared/types'
 import { useTranslation } from '../../hooks/useTranslation'
 import styles from './ConnectDialog.module.css'
@@ -12,6 +12,13 @@ interface ConnectDialogProps {
 /** Shown only when a session has no stored credential — user must enter credentials manually. */
 export default function ConnectDialog({ session, onConnected, onClose }: ConnectDialogProps): JSX.Element {
   const { t } = useTranslation()
+
+  useEffect(() => {
+    const h = (e: KeyboardEvent): void => { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', h)
+    return () => window.removeEventListener('keydown', h)
+  }, [onClose])
+
   const [username, setUsername] = useState(session.username)
   const [password, setPassword] = useState('')
   const [connecting, setConnecting] = useState(false)

@@ -145,6 +145,12 @@ export default function CredentialsModal({ onClose }: CredentialsModalProps): JS
   const [view, setView] = useState<View>({ mode: 'list' })
   const [loading, setLoading] = useState(true)
 
+  useEffect(() => {
+    const h = (e: KeyboardEvent): void => { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', h)
+    return () => window.removeEventListener('keydown', h)
+  }, [onClose])
+
   const refresh = async (): Promise<void> => {
     const r = await window.electronAPI.credentials.list()
     if (r.success && r.data) setCredentials(r.data)

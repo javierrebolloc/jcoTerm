@@ -22,6 +22,7 @@
   "session.emptyFolder": "Empty",
   "session.dropHere": "Drop here",
   "session.connecting": "Connecting...",
+  "session.connect.connecting": "Connecting...",
   "session.tooltip": "{user}@{host}:{port} — Double-click to connect",
 
   "session.save.titleNew": "New session",
@@ -199,6 +200,11 @@
   "settings.about.logFile": "Log file",
   "settings.about.logNote": "The application logs events to this file. Open it to diagnose issues.",
   "settings.about.openLog": "Open log",
+  "settings.ai.recommended": "recommended",
+  "settings.ai.fast": "fast",
+  "settings.ai.maximum": "maximum",
+  "settings.ai.keySaved": "saved",
+  "settings.general.restartNotice": "Restart the application to apply the language change.",
 
   "splash.title": "jcoTerm",
 
@@ -229,6 +235,10 @@
   "common.edit": "Edit",
   "common.connect": "Connect",
   "common.close": "Close",
+  "common.error": "Error",
+  "common.ok": "OK",
+  "common.collapse": "Collapse",
+  "common.expand": "Expand",
   "common.loading": "Loading...",
   "common.connectionError": "Connection error",
   "common.rename": "Rename",

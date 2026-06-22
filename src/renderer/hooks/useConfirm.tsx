@@ -1,4 +1,5 @@
-import { createContext, useContext, useState, useCallback, type ReactNode } from 'react'
+import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from 'react'
+import { useTranslation } from './useTranslation'
 import styles from './ConfirmDialog.module.css'
 
 interface ConfirmState {
@@ -17,6 +18,7 @@ export function useConfirm(): ConfirmFn {
 
 export function ConfirmProvider({ children }: { children: ReactNode }): JSX.Element {
   const [state, setState] = useState<ConfirmState | null>(null)
+  const { t } = useTranslation()
 
   const confirm = useCallback((message: string, danger = false): Promise<boolean> => {
     return new Promise<boolean>((resolve) => {
@@ -29,6 +31,15 @@ export function ConfirmProvider({ children }: { children: ReactNode }): JSX.Elem
     setState(null)
   }
 
+  useEffect(() => {
+    if (!state) return
+    const handleKey = (e: KeyboardEvent): void => {
+      if (e.key === 'Escape') handleResult(false)
+    }
+    window.addEventListener('keydown', handleKey)
+    return () => window.removeEventListener('keydown', handleKey)
+  }, [state])
+
   return (
     <ConfirmContext.Provider value={confirm}>
       {children}
@@ -38,14 +49,14 @@ export function ConfirmProvider({ children }: { children: ReactNode }): JSX.Elem
             <pre className={styles.message}>{state.message}</pre>
             <div className={styles.actions}>
               <button className={styles.cancelBtn} onClick={() => handleResult(false)}>
-                Cancel
+                {t('common.cancel')}
               </button>
               <button
                 className={state.danger ? styles.dangerBtn : styles.confirmBtn}
                 onClick={() => handleResult(true)}
                 autoFocus
               >
-                OK
+                {t('common.ok')}
               </button>
             </div>
           </div>

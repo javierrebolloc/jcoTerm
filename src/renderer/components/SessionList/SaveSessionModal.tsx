@@ -19,6 +19,12 @@ export default function SaveSessionModal({
   const isEdit = Boolean(initialSession)
   const { t } = useTranslation()
 
+  useEffect(() => {
+    const h = (e: KeyboardEvent): void => { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', h)
+    return () => window.removeEventListener('keydown', h)
+  }, [onClose])
+
   const [name, setName] = useState(initialSession?.name ?? '')
   const [host, setHost] = useState(initialSession?.host ?? '')
   const [port, setPort] = useState(String(initialSession?.port ?? 22))

@@ -1,4 +1,5 @@
-import { ipcMain, type WebContents } from 'electron'
+import { app, ipcMain, type WebContents } from 'electron'
+import path from 'path'
 import { v4 as uuidv4 } from 'uuid'
 import { log } from '../logger'
 import { IPC } from '../../shared/ipc-channels'
@@ -12,6 +13,13 @@ const SFTP_PATH_FORBIDDEN = /\0/
 
 function isValidSftpPath(p: unknown): p is string {
   return typeof p === 'string' && p.length > 0 && p.length <= 4096 && !SFTP_PATH_FORBIDDEN.test(p)
+}
+
+function isValidLocalPath(p: unknown): p is string {
+  if (!isValidSftpPath(p)) return false
+  const resolved = path.resolve(p)
+  const home = path.resolve(app.getPath('home'))
+  return resolved.startsWith(home)
 }
 
 async function withSftpSession<T>(
@@ -145,7 +153,7 @@ export function registerSftpHandlers(sshManager: SshManager): void {
       payload: { sshSessionId: string; remotePath: string; localPath: string },
     ): Promise<IpcResult<{ transferId: string }>> => {
       if (!isValidSftpPath(payload.remotePath)) return { success: false, error: t('errors.sftp.invalidRemotePath') }
-      if (!isValidSftpPath(payload.localPath)) return { success: false, error: t('errors.sftp.invalidLocalPath') }
+      if (!isValidLocalPath(payload.localPath)) return { success: false, error: t('errors.sftp.invalidLocalPath') }
       if (!isValidSessionId(payload.sshSessionId)) return { success: false, error: t('errors.sftp.invalidSessionId') }
       const session = sshManager.getSession(payload.sshSessionId)
       if (!session) return { success: false, error: t('errors.sftp.sessionNotActive') }
@@ -174,7 +182,7 @@ export function registerSftpHandlers(sshManager: SshManager): void {
       event,
       payload: { sshSessionId: string; localPath: string; remotePath: string },
     ): Promise<IpcResult<{ transferId: string }>> => {
-      if (!isValidSftpPath(payload.localPath)) return { success: false, error: t('errors.sftp.invalidLocalPath') }
+      if (!isValidLocalPath(payload.localPath)) return { success: false, error: t('errors.sftp.invalidLocalPath') }
       if (!isValidSftpPath(payload.remotePath)) return { success: false, error: t('errors.sftp.invalidRemotePath') }
       if (!isValidSessionId(payload.sshSessionId)) return { success: false, error: t('errors.sftp.invalidSessionId') }
       const session = sshManager.getSession(payload.sshSessionId)

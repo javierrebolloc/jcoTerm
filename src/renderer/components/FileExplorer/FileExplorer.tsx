@@ -61,7 +61,7 @@ function FileNode({ node, depth, sshSessionId, onToggle, onCd }: FileNodeProps):
           <button
             className={styles.arrowBtn}
             onClick={() => onToggle(node.path)}
-            aria-label={node.expanded ? 'Colapsar' : 'Expandir'}
+            aria-label={node.expanded ? t('common.collapse') : t('common.expand')}
           >
             {node.expanded ? '▾' : '▸'}
           </button>
