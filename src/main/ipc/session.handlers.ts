@@ -35,7 +35,7 @@ export function registerSessionHandlers(
       if (!s || typeof s.name !== 'string' || s.name.length > 200) return { success: false, error: 'Invalid session data' }
       if (!isValidHost(s.host)) return { success: false, error: t('errors.ssh.invalidHost') }
       if (!isValidPort(s.port)) return { success: false, error: t('errors.ssh.invalidPort') }
-      if (!isValidUsername(s.username)) return { success: false, error: t('errors.ssh.invalidUser') }
+      if (typeof s.username !== 'string' || s.username.length > 64) return { success: false, error: t('errors.ssh.invalidUser') }
       if (!['password', 'privateKey', 'agent'].includes(s.authMethod)) return { success: false, error: 'Invalid auth method' }
 
       if (!s.id) s.id = uuidv4()
