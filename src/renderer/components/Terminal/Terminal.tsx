@@ -1,4 +1,4 @@
-import { useRef, useCallback, useEffect } from 'react'
+import { useRef, useCallback, useEffect, useState } from 'react'
 import TabBar from './TabBar'
 import type { Tab } from './TabBar'
 import TerminalPane from './TerminalPane'
@@ -63,8 +63,42 @@ export default function Terminal({
 
   const inSplitMode = splitCount > 0
 
+  // ── Split cell assignments ───────────────────────────────────────────────
+  const [splitAssignments, setSplitAssignments] = useState<string[]>([])
+
+  useEffect(() => {
+    if (!inSplitMode) { setSplitAssignments([]); return }
+    setSplitAssignments((prev) => {
+      const validPrev = prev.filter((id) => tabs.some((t) => t.sshSessionId === id))
+      if (validPrev.length >= splitCount) return validPrev.slice(0, splitCount)
+      const used = new Set(validPrev)
+      const available = tabs.filter((t) => !used.has(t.sshSessionId))
+      const result = [...validPrev]
+      for (const t of available) {
+        if (result.length >= splitCount) break
+        result.push(t.sshSessionId)
+      }
+      while (result.length < splitCount && tabs.length > 0) {
+        result.push(tabs[0].sshSessionId)
+      }
+      return result
+    })
+  }, [inSplitMode, splitCount, tabs])
+
+  const handleCellAssign = useCallback((cellIndex: number, sshSessionId: string): void => {
+    setSplitAssignments((prev) => {
+      const next = [...prev]
+      const otherIdx = next.indexOf(sshSessionId)
+      if (otherIdx !== -1 && otherIdx !== cellIndex) {
+        next[otherIdx] = next[cellIndex]
+      }
+      next[cellIndex] = sshSessionId
+      return next
+    })
+  }, [])
+
   const multiExecTargets = inSplitMode && multiExec
-    ? tabs.slice(0, splitCount).filter((tab) => !multiExecExcluded.has(tab.sshSessionId)).map((tab) => tab.sshSessionId)
+    ? splitAssignments.filter((id) => !multiExecExcluded.has(id))
     : []
 
   if (tabs.length === 0) {
@@ -93,56 +127,69 @@ export default function Terminal({
         />
       )}
 
-      {/* Single container for all panes — never unmounts/remounts on mode switch */}
+      {/* All panes always mounted, keyed by sshSessionId so they never remount */}
       <div
         className={inSplitMode ? styles.splitGrid : styles.panesContainer}
         data-count={inSplitMode ? String(splitCount) : undefined}
       >
-        {tabs.map((tab, idx) => {
-          const isInSplit = inSplitMode && idx < splitCount
+        {tabs.map((tab) => {
+          const cellIdx = inSplitMode ? splitAssignments.indexOf(tab.sshSessionId) : -1
+          const isVisibleSplit = inSplitMode && cellIdx !== -1
           const isVisibleNormal = !inSplitMode && tab.sshSessionId === activeTabId
-          const isActive = isInSplit || isVisibleNormal
+          const isActive = isVisibleSplit || isVisibleNormal
+          const isHidden = !isActive
 
           const isExcluded = multiExecExcluded.has(tab.sshSessionId)
-          const pane = (
-            <TerminalPane
-              sshSessionId={tab.sshSessionId}
-              label={tab.label}
-              isActive={isActive}
-              scrollback={scrollback}
-              fontSize={fontSize}
-              fontFamily={fontFamily}
-              cursorStyle={cursorStyle}
-              cursorBlink={cursorBlink}
-              multiExecTargets={multiExecTargets}
-              multiExecExcluded={isExcluded}
-              onToggleMultiExec={inSplitMode && multiExec ? () => onToggleMultiExecExclude(tab.sshSessionId) : undefined}
-              onClose={onTabClose}
-              onRegisterContent={handleRegisterContent}
-            />
+
+          return (
+            <div
+              key={tab.sshSessionId}
+              className={`${inSplitMode && isVisibleSplit ? styles.splitCell : ''} ${isVisibleSplit && tab.sshSessionId === activeTabId ? styles.splitCellActive : ''} ${isHidden ? styles.hiddenPane : ''}`}
+              style={isVisibleSplit ? { order: cellIdx } : undefined}
+              onClick={isVisibleSplit ? () => onTabSelect(tab.sshSessionId) : undefined}
+            >
+              {isVisibleSplit && (
+                <div className={styles.splitCellHeader}>
+                  <select
+                    className={styles.splitSelect}
+                    value={tab.sshSessionId}
+                    onChange={(e) => handleCellAssign(cellIdx, e.target.value)}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {tabs.map((t) => (
+                      <option key={t.sshSessionId} value={t.sshSessionId}>
+                        {t.label}
+                      </option>
+                    ))}
+                  </select>
+                  {multiExec && (
+                    <button
+                      className={`${styles.splitMultiExecBtn} ${isExcluded ? styles.splitMultiExecExcluded : ''}`}
+                      onClick={(e) => { e.stopPropagation(); onToggleMultiExecExclude(tab.sshSessionId) }}
+                      title={isExcluded ? t('app.multiExecInclude') : t('app.multiExecExclude')}
+                    >
+                      {isExcluded ? '⊘' : '>>'}
+                    </button>
+                  )}
+                </div>
+              )}
+              <TerminalPane
+                sshSessionId={tab.sshSessionId}
+                label={tab.label}
+                isActive={isActive}
+                scrollback={scrollback}
+                fontSize={fontSize}
+                fontFamily={fontFamily}
+                cursorStyle={cursorStyle}
+                cursorBlink={cursorBlink}
+                multiExecTargets={isVisibleSplit ? multiExecTargets : []}
+                multiExecExcluded={isExcluded}
+                onToggleMultiExec={isVisibleSplit && multiExec ? () => onToggleMultiExecExclude(tab.sshSessionId) : undefined}
+                onClose={onTabClose}
+                onRegisterContent={handleRegisterContent}
+              />
+            </div>
           )
-
-          if (inSplitMode && isInSplit) {
-            return (
-              <div
-                key={tab.sshSessionId}
-                className={`${styles.splitCell} ${tab.sshSessionId === activeTabId ? styles.splitCellActive : ''}`}
-                onClick={() => onTabSelect(tab.sshSessionId)}
-              >
-                {pane}
-              </div>
-            )
-          }
-
-          if (inSplitMode && !isInSplit) {
-            return (
-              <div key={tab.sshSessionId} className={styles.hiddenPane}>
-                {pane}
-              </div>
-            )
-          }
-
-          return <div key={tab.sshSessionId} style={isActive ? undefined : { display: 'none' }}>{pane}</div>
         })}
       </div>
     </div>

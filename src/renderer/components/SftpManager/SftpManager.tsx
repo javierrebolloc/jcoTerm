@@ -327,32 +327,37 @@ export default function SftpManager({ sessions }: SftpManagerProps): JSX.Element
     if (!credentialPrompt || !credPassword) return
     setConnecting(true)
     setCredError(null)
-    const result = await window.electronAPI.ssh.connect({
-      host: credentialPrompt.host,
-      port: credentialPrompt.port,
-      username: credUsername.trim(),
-      authMethod: 'password',
-      password: credPassword,
-    })
-    if (result.success && result.sessionId) {
-      tabCounterRef.current++
-      const tabId = `sftp-${tabCounterRef.current}`
-      const newTab: RemoteTab = {
-        id: tabId, sshSessionId: result.sessionId, label: credentialPrompt.name,
-        path: '/', entries: [], loading: true, error: null, selectedNames: new Set(),
-      }
-      setRemoteTabs((prev) => [...prev, newTab])
-      setActiveTabId(tabId)
-      setCredentialPrompt(null)
-      setCredPassword('')
+    try {
+      const result = await window.electronAPI.ssh.connect({
+        host: credentialPrompt.host,
+        port: credentialPrompt.port,
+        username: credUsername.trim(),
+        authMethod: 'password',
+        password: credPassword,
+      })
+      if (result.success && result.sessionId) {
+        tabCounterRef.current++
+        const tabId = `sftp-${tabCounterRef.current}`
+        const newTab: RemoteTab = {
+          id: tabId, sshSessionId: result.sessionId, label: credentialPrompt.name,
+          path: '/', entries: [], loading: true, error: null, selectedNames: new Set(),
+        }
+        setRemoteTabs((prev) => [...prev, newTab])
+        setActiveTabId(tabId)
+        setCredentialPrompt(null)
+        setCredPassword('')
 
-      const homeResult = await window.electronAPI.sftp.realpath(result.sessionId, '.')
-      const homePath = homeResult.success && homeResult.data ? homeResult.data : '/'
-      void loadRemoteDir(tabId, result.sessionId, homePath)
-    } else {
-      setCredError(result.error ?? t('common.connectionError'))
+        const homeResult = await window.electronAPI.sftp.realpath(result.sessionId, '.')
+        const homePath = homeResult.success && homeResult.data ? homeResult.data : '/'
+        void loadRemoteDir(tabId, result.sessionId, homePath)
+      } else {
+        setCredError(result.error ?? t('common.connectionError'))
+      }
+    } catch (err) {
+      setCredError((err as Error).message || t('common.connectionError'))
+    } finally {
+      setConnecting(false)
     }
-    setConnecting(false)
   }, [credentialPrompt, credUsername, credPassword, loadRemoteDir, t])
 
   const activeCount = transfers.filter((t) => t.status === 'active' || t.status === 'pending').length
@@ -452,14 +457,14 @@ export default function SftpManager({ sessions }: SftpManagerProps): JSX.Element
       )}
 
       {credentialPrompt && (
-        <div className={styles.credOverlay} onClick={() => setCredentialPrompt(null)}>
+        <div className={styles.credOverlay} onClick={connecting ? undefined : () => setCredentialPrompt(null)}>
           <div className={styles.credDialog} onClick={(e) => e.stopPropagation()}>
             <div className={styles.credHeader}>
               <div>
                 <p className={styles.credName}>{credentialPrompt.name}</p>
                 <p className={styles.credHost}>{credentialPrompt.host}:{credentialPrompt.port}</p>
               </div>
-              <button className={styles.credClose} onClick={() => setCredentialPrompt(null)}>✕</button>
+              <button className={styles.credClose} onClick={() => setCredentialPrompt(null)} disabled={connecting}>✕</button>
             </div>
             <form
               className={styles.credForm}
@@ -486,9 +491,15 @@ export default function SftpManager({ sessions }: SftpManagerProps): JSX.Element
                   placeholder="••••••••"
                 />
               </label>
+              {connecting && (
+                <div className={styles.credConnecting}>
+                  <span className={styles.credSpinner} />
+                  <span>{t('sftp.connecting')}</span>
+                </div>
+              )}
               {credError && <p className={styles.credError}>{credError}</p>}
               <div className={styles.credActions}>
-                <button type="button" className={styles.credCancelBtn} onClick={() => setCredentialPrompt(null)}>{t('common.cancel')}</button>
+                <button type="button" className={styles.credCancelBtn} onClick={() => setCredentialPrompt(null)} disabled={connecting}>{t('common.cancel')}</button>
                 <button type="submit" className={styles.credConnectBtn} disabled={connecting || !credPassword}>
                   {connecting ? t('sftp.connecting') : t('common.connect')}
                 </button>

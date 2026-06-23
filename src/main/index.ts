@@ -20,7 +20,7 @@ import { SettingsStore } from './storage/SettingsStore'
 import { KnownHostsStore } from './storage/KnownHostsStore'
 import { LockStore } from './storage/LockStore'
 import { IPC } from '../shared/ipc-channels'
-import { setLocale } from '../shared/i18n'
+import { setLocale, t } from '../shared/i18n'
 import type { LogLevel, WindowState, SavedSession, SavedFolder, IpcResult } from '../shared/types'
 
 import { setupPortableMode } from './portable'
@@ -29,6 +29,17 @@ setupPortableMode()
 
 // Must run before app.whenReady so renderer IPC logging is registered early
 initLogger()
+
+process.on('uncaughtException', (err) => {
+  log.error('[FATAL] Uncaught exception:', err.message, err.stack)
+  cleanupSshHandlers()
+  app.quit()
+})
+
+process.on('unhandledRejection', (reason) => {
+  const msg = reason instanceof Error ? reason.message : String(reason)
+  log.error('[FATAL] Unhandled rejection:', msg)
+})
 
 
 const VALID_LOG_LEVELS: readonly string[] = ['debug', 'info', 'warn', 'error']
@@ -259,16 +270,38 @@ app.whenReady().then(() => {
     }
   })
 
-  createWindow()
+  app.on('window-all-closed', () => {
+    log.info('All windows closed, quitting')
+    credentialStore.clearEncryptionKey()
+    cleanupSshHandlers()
+    app.quit()
+  })
+
+  app.on('before-quit', () => {
+    credentialStore.clearEncryptionKey()
+    cleanupSshHandlers()
+  })
+
+  const mainWindow = createWindow()
+
+  let forceClose = false
+  mainWindow.on('close', (e) => {
+    if (forceClose) return
+    const activeCount = sshManager.activeCount
+    if (activeCount > 0) {
+      e.preventDefault()
+      mainWindow.webContents.send(IPC.APP.CONFIRM_CLOSE, activeCount)
+    }
+  })
+
+  ipcMain.on(IPC.APP.CONFIRM_CLOSE_RESPONSE, (_event, confirmed: boolean) => {
+    if (confirmed) {
+      forceClose = true
+      mainWindow.close()
+    }
+  })
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })
-})
-
-app.on('window-all-closed', () => {
-  log.info('All windows closed, quitting')
-  credentialStore.clearEncryptionKey()
-  cleanupSshHandlers()
-  app.quit()
 })

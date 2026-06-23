@@ -66,5 +66,7 @@ export const IPC = {
     VERIFY_LOCK_PASSWORD: 'app:verifyLockPassword',
     EXPORT_SESSIONS: 'app:exportSessions',
     IMPORT_SESSIONS: 'app:importSessions',
+    CONFIRM_CLOSE: 'app:confirmClose',
+    CONFIRM_CLOSE_RESPONSE: 'app:confirmCloseResponse',
   },
 } as const

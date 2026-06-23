@@ -1,5 +1,6 @@
 import fs from 'fs'
 import path from 'path'
+import { log } from '../logger'
 import type { SavedSession } from '../../shared/types'
 
 interface SessionsFile {
@@ -11,24 +12,47 @@ const FILE_VERSION = 1
 
 export class SessionStore {
   private filePath: string
+  private cache: SessionsFile | null = null
 
   constructor(defaultPath: string) {
     this.filePath = defaultPath
   }
 
   private read(): SessionsFile {
+    if (this.cache) return this.cache
     try {
-      if (!fs.existsSync(this.filePath)) return { version: FILE_VERSION, sessions: [] }
-      return JSON.parse(fs.readFileSync(this.filePath, 'utf-8')) as SessionsFile
-    } catch {
-      return { version: FILE_VERSION, sessions: [] }
+      if (!fs.existsSync(this.filePath)) {
+        this.cache = { version: FILE_VERSION, sessions: [] }
+        return this.cache
+      }
+      this.cache = JSON.parse(fs.readFileSync(this.filePath, 'utf-8')) as SessionsFile
+      return this.cache
+    } catch (err) {
+      log.error('[sessions] Failed to read sessions file, attempting backup recovery:', (err as Error).message)
+      const backup = this.filePath + '.bak'
+      if (fs.existsSync(backup)) {
+        try {
+          this.cache = JSON.parse(fs.readFileSync(backup, 'utf-8')) as SessionsFile
+          log.info('[sessions] Recovered from backup file')
+          return this.cache
+        } catch {
+          log.error('[sessions] Backup also corrupt, starting with empty sessions')
+        }
+      }
+      this.cache = { version: FILE_VERSION, sessions: [] }
+      return this.cache
     }
   }
 
   private write(data: SessionsFile): void {
+    this.cache = data
     fs.mkdirSync(path.dirname(this.filePath), { recursive: true })
-    // Pretty-printed JSON so users can inspect/share the file easily
-    fs.writeFileSync(this.filePath, JSON.stringify(data, null, 2), 'utf-8')
+    if (fs.existsSync(this.filePath)) {
+      try { fs.copyFileSync(this.filePath, this.filePath + '.bak') } catch { /* best effort */ }
+    }
+    const tmp = this.filePath + '.tmp'
+    fs.writeFileSync(tmp, JSON.stringify(data, null, 2), 'utf-8')
+    fs.renameSync(tmp, this.filePath)
   }
 
   getFilePath(): string {
@@ -37,6 +61,7 @@ export class SessionStore {
 
   setFilePath(newPath: string): void {
     this.filePath = newPath
+    this.cache = null
   }
 
   list(): SavedSession[] {

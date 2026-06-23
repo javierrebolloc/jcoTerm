@@ -36,6 +36,13 @@
 
 .item:hover { background: var(--color-bg-hover); }
 
+.active {
+  background: rgba(88,166,255,0.06);
+  border-left: 2px solid var(--color-accent);
+}
+
+.active .name { color: var(--color-accent); }
+
 .info {
   display: flex;
   flex-direction: column;
@@ -88,4 +95,4 @@
 
 .actionBtn:hover { background: var(--color-bg-elevated); color: var(--color-text-primary); }
 
-.deleteBtn:hover { color: var(--color-danger); background: rgba(248,81,73,0.1); }
+.deleteBtn:hover { color: var(--color-danger); background: var(--color-danger-subtle); }

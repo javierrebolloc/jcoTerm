@@ -6,6 +6,7 @@ import styles from './SessionItem.module.css'
 interface SessionItemProps {
   session: SavedSessionWithStatus
   connecting?: boolean
+  active?: boolean
   onConnect: (session: SavedSessionWithStatus) => void
   onEdit: (session: SavedSessionWithStatus) => void
   onDelete: (id: string, name: string) => void
@@ -14,6 +15,7 @@ interface SessionItemProps {
 export default function SessionItem({
   session,
   connecting,
+  active,
   onConnect,
   onEdit,
   onDelete,
@@ -23,7 +25,7 @@ export default function SessionItem({
 
   return (
     <div
-      className={`${styles.item} ${dragging ? styles.dragging : ''} ${connecting ? styles.connecting : ''}`}
+      className={`${styles.item} ${dragging ? styles.dragging : ''} ${connecting ? styles.connecting : ''} ${active ? styles.active : ''}`}
       draggable={!connecting}
       onDragStart={(e) => {
         e.dataTransfer.setData('session-id', session.id)

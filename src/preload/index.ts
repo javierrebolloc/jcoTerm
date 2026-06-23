@@ -140,6 +140,13 @@ const api: ElectronAPI = {
       ipcRenderer.invoke(IPC.APP.EXPORT_SESSIONS),
     importSessions: (): Promise<IpcResult<{ imported: number }>> =>
       ipcRenderer.invoke(IPC.APP.IMPORT_SESSIONS),
+    onConfirmClose: (cb: (activeCount: number) => void): (() => void) => {
+      const handler = (_e: IpcRendererEvent, count: number): void => cb(count)
+      ipcRenderer.on(IPC.APP.CONFIRM_CLOSE, handler)
+      return () => ipcRenderer.removeListener(IPC.APP.CONFIRM_CLOSE, handler)
+    },
+    respondConfirmClose: (confirmed: boolean): void =>
+      ipcRenderer.send(IPC.APP.CONFIRM_CLOSE_RESPONSE, confirmed),
   },
 
   sftp: {

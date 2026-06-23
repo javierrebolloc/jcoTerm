@@ -9,8 +9,8 @@
 .topBar {
   display: flex;
   align-items: center;
-  gap: var(--space-sm);
-  padding: 0 var(--space-md);
+  gap: 4px;
+  padding: 0 var(--space-sm);
   height: 38px;
   flex-shrink: 0;
   background: var(--color-bg-surface);
@@ -18,35 +18,48 @@
 }
 
 .topBtn {
-  background: var(--color-bg-elevated);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: transparent;
   color: var(--color-text-secondary);
   font-size: var(--font-size-sm);
-  padding: 3px var(--space-md);
-  border: 1px solid var(--color-border);
+  padding: 4px 8px;
+  border: 1px solid transparent;
   border-radius: var(--radius-sm);
   cursor: pointer;
   white-space: nowrap;
+  height: 28px;
 }
 
 .topBtn:hover {
   background: var(--color-bg-hover);
   color: var(--color-text-primary);
+  border-color: var(--color-border);
+}
+
+.topIcon {
+  font-size: 13px;
+  line-height: 1;
+  opacity: 0.7;
+}
+
+.topBtn:hover .topIcon { opacity: 1; }
+
+.topBtnIcon {
+  padding: 4px 6px;
+  font-size: 15px;
+}
+
+.topSep {
+  width: 1px;
+  height: 18px;
+  background: var(--color-border-muted);
+  margin: 0 2px;
+  flex-shrink: 0;
 }
 
 .topSpacer { flex: 1; }
-
-.settingsBtn {
-  background: transparent;
-  color: var(--color-text-muted);
-  font-size: 16px;
-  padding: 2px 6px;
-  border-radius: var(--radius-sm);
-}
-
-.settingsBtn:hover {
-  background: var(--color-bg-hover);
-  color: var(--color-text-primary);
-}
 
 /* ── Body (sidebar + main) ── */
 .body {
@@ -76,6 +89,15 @@
   overflow: hidden;
 }
 
+.viewPanel {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.viewPanelHidden { display: none; }
+
 .rightPanel {
   width: 240px;
   min-width: 200px;
@@ -86,11 +108,6 @@
   flex-direction: column;
   overflow: hidden;
   flex-shrink: 0;
-}
-
-.settingsBtnActive {
-  background: rgba(88,166,255,0.12);
-  color: var(--color-accent);
 }
 
 /* ── Split button ── */
@@ -110,11 +127,11 @@
   top: 100%;
   left: 0;
   padding-top: 4px;
-  z-index: 500;
+  z-index: var(--z-modal-nested);
   background: var(--color-bg-elevated);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
-  box-shadow: 0 6px 20px rgba(0,0,0,0.5);
+  box-shadow: var(--shadow-dropdown);
   min-width: 160px;
 }
 
@@ -166,7 +183,7 @@
   position: fixed;
   bottom: 24px;
   right: 24px;
-  z-index: 9999;
+  z-index: var(--z-toast);
   display: flex;
   align-items: center;
   gap: var(--space-sm);

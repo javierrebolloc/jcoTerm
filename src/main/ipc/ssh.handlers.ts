@@ -60,6 +60,7 @@ export function registerSshHandlers(
 
       let connectHost = ''
       let connectPort = 22
+      let sessionId = ''
 
       try {
         let config: SshConnectConfig
@@ -106,7 +107,7 @@ export function registerSshHandlers(
           config = buildDirectConfig(params)
         }
 
-        const sessionId = uuidv4()
+        sessionId = uuidv4()
         const session = manager.createSession(sessionId)
 
         session.on('output', ({ sessionId: id, data }: { sessionId: string; data: string }) => {
@@ -134,6 +135,7 @@ export function registerSshHandlers(
         log.info('SSH connected: sessionId=%s host=%s', sessionId, connectHost)
         return { success: true, sessionId }
       } catch (err) {
+        if (sessionId) manager.removeSession(sessionId)
         if (err instanceof HostKeyUnknownError) {
           log.warn('SSH connect: unknown host key for %s', connectHost)
           return { success: false, hostKeyUnknown: true, fingerprint: err.fingerprint, error: t('errors.ssh.hostKeyUnknown') }

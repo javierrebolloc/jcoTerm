@@ -52,6 +52,26 @@
   /* Radius */
   --radius-sm: 4px;
   --radius-md: 6px;
+
+  /* Semantic contrast */
+  --color-accent-contrast: #0d1117;
+  --color-on-danger: #fff;
+  --color-accent-subtle: rgba(88,166,255,0.1);
+  --color-accent-subtle-border: rgba(88,166,255,0.3);
+  --color-danger-subtle: rgba(248,81,73,0.1);
+  --color-danger-subtle-border: rgba(248,81,73,0.3);
+  --color-warning-subtle: rgba(210,153,34,0.08);
+  --color-overlay: rgba(0,0,0,0.6);
+  --shadow-modal: 0 8px 32px rgba(0,0,0,0.5);
+  --shadow-dropdown: 0 4px 16px rgba(0,0,0,0.4);
+
+  /* Z-index scale */
+  --z-dropdown: 100;
+  --z-modal: 200;
+  --z-modal-nested: 300;
+  --z-toast: 400;
+  --z-lock: 500;
+  --z-splash: 600;
 }
 
 html,
@@ -130,4 +150,15 @@ label {
 }
 ::-webkit-scrollbar-thumb:hover {
   background: var(--color-text-muted);
+}
+
+/* ── Modal animations ── */
+@keyframes modalFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes modalScaleIn {
+  from { opacity: 0; transform: scale(0.95) translateY(-8px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
 }

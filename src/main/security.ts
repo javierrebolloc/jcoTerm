@@ -69,7 +69,7 @@ export function sanitizeSshError(message: string): string {
   if (/agent/i.test(message)) {
     return t('errors.ssh.agentError')
   }
-  return t('errors.ssh.genericError')
+  return t('errors.ssh.genericError', { detail: message })
 }
 
 export function sanitizeForLog(value: string, maxLength = 100): string {

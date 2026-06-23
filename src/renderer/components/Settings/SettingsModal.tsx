@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import type { AppSettings, KnownHostEntry, CursorStyle } from '../../../shared/types'
 import { useTranslation } from '../../hooks/useTranslation'
+import { useFocusTrap } from '../../hooks/useFocusTrap'
 import styles from './SettingsModal.module.css'
 
 interface SettingsModalProps {
@@ -46,6 +47,7 @@ export default function SettingsModal({ onClose }: SettingsModalProps): JSX.Elem
   const [exportImportMsg, setExportImportMsg] = useState<string | null>(null)
 
   const { t } = useTranslation()
+  const trapRef = useFocusTrap<HTMLDivElement>()
 
   useEffect(() => {
     const h = (e: KeyboardEvent): void => { if (e.key === 'Escape') onClose() }
@@ -110,7 +112,7 @@ export default function SettingsModal({ onClose }: SettingsModalProps): JSX.Elem
 
   if (!settings) {
     return (
-      <div className={styles.overlay} onClick={onClose}>
+      <div className={styles.overlay} ref={trapRef} onClick={onClose}>
         <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
           <p className={styles.loading}>{t('settings.loading')}</p>
         </div>
@@ -484,7 +486,7 @@ export default function SettingsModal({ onClose }: SettingsModalProps): JSX.Elem
   }
 
   return (
-    <div className={styles.overlay} onClick={onClose}>
+    <div className={styles.overlay} ref={trapRef} onClick={onClose}>
       <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
         {/* ── Sidebar ── */}
         <div className={styles.sidebar}>

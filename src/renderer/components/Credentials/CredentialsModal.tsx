@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import type { NamedCredential } from '../../../shared/types'
 import { useTranslation } from '../../hooks/useTranslation'
+import { useFocusTrap } from '../../hooks/useFocusTrap'
 import { useConfirm } from '../../hooks/useConfirm'
 import styles from './CredentialsModal.module.css'
 
@@ -141,6 +142,7 @@ interface CredentialsModalProps {
 
 export default function CredentialsModal({ onClose }: CredentialsModalProps): JSX.Element {
   const { t } = useTranslation()
+  const trapRef = useFocusTrap<HTMLDivElement>()
   const [credentials, setCredentials] = useState<NamedCredential[]>([])
   const [view, setView] = useState<View>({ mode: 'list' })
   const [loading, setLoading] = useState(true)
@@ -173,7 +175,7 @@ export default function CredentialsModal({ onClose }: CredentialsModalProps): JS
   const editing = inForm ? view.editing : undefined
 
   return (
-    <div className={styles.overlay}>
+    <div className={styles.overlay} ref={trapRef}>
       <div className={styles.modal}>
 
         {/* Header */}

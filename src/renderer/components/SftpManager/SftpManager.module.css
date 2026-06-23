@@ -51,7 +51,7 @@
 
 .tabClose:hover {
   color: var(--color-danger);
-  background: rgba(248, 81, 73, 0.1);
+  background: var(--color-danger-subtle);
 }
 
 /* ── Dual panes ── */
@@ -104,7 +104,7 @@
 
 .queueBadge {
   background: var(--color-accent);
-  color: #fff;
+  color: var(--color-on-danger);
   font-size: 10px;
   font-weight: 700;
   padding: 0 5px;
@@ -118,11 +118,11 @@
 .credOverlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.6);
+  background: var(--color-overlay);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 200;
+  z-index: var(--z-modal-nested);
 }
 
 .credDialog {
@@ -131,7 +131,7 @@
   border-radius: var(--radius-md);
   width: 400px;
   max-width: calc(100vw - 32px);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  box-shadow: var(--shadow-modal);
 }
 
 .credHeader {
@@ -199,8 +199,8 @@
 .credError {
   font-size: var(--font-size-sm);
   color: var(--color-danger);
-  background: rgba(248, 81, 73, 0.1);
-  border: 1px solid rgba(248, 81, 73, 0.3);
+  background: var(--color-danger-subtle);
+  border: 1px solid var(--color-danger-subtle-border);
   border-radius: var(--radius-sm);
   padding: var(--space-xs) var(--space-sm);
 }
@@ -222,12 +222,35 @@
 
 .credConnectBtn {
   background: var(--color-accent);
-  color: #0d1117;
+  color: var(--color-accent-contrast);
   font-weight: 600;
   padding: var(--space-xs) var(--space-xl);
 }
 
 .credConnectBtn:hover:not(:disabled) { background: var(--color-accent-hover); }
+
+.credConnecting {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: var(--font-size-sm);
+  color: var(--color-accent);
+  padding: var(--space-xs) 0;
+}
+
+.credSpinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--color-border);
+  border-top-color: var(--color-accent);
+  border-radius: 50%;
+  animation: sftpSpin 0.8s linear infinite;
+}
+
+@keyframes sftpSpin {
+  to { transform: rotate(360deg); }
+}
 
 /* ── Error toast ── */
 

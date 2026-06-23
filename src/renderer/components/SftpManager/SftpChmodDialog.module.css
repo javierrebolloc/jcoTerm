@@ -3,11 +3,12 @@
 .overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.6);
+  background: var(--color-overlay);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 100;
+  z-index: var(--z-modal);
+  animation: modalFadeIn 0.15s ease-out;
 }
 
 /* ── Dialog ── */
@@ -18,9 +19,10 @@
   border-radius: var(--radius-md);
   width: 340px;
   max-width: calc(100vw - 32px);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  box-shadow: var(--shadow-modal);
   display: flex;
   flex-direction: column;
+  animation: modalScaleIn 0.2s ease-out;
 }
 
 /* ── Header ── */
@@ -162,7 +164,7 @@
 
 .applyBtn {
   background: var(--color-accent);
-  color: #0d1117;
+  color: var(--color-accent-contrast);
   font-weight: 600;
   padding: var(--space-xs) var(--space-lg);
   font-size: var(--font-size-sm);

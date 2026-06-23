@@ -50,7 +50,7 @@
 
 .toggleBadge {
   background: var(--color-accent);
-  color: white;
+  color: var(--color-on-danger);
   font-size: 10px;
   font-weight: 700;
   padding: 0 5px;
@@ -310,7 +310,7 @@
 
 .sendBtn {
   background: var(--color-accent);
-  color: white;
+  color: var(--color-on-danger);
   padding: var(--space-xs) var(--space-md);
   border-radius: var(--radius-sm);
   font-size: var(--font-size-sm);

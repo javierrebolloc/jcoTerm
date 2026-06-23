@@ -32,7 +32,9 @@ describe('SessionStore', () => {
   })
 
   afterEach(() => {
-    if (fs.existsSync(tmpFile)) fs.unlinkSync(tmpFile)
+    for (const f of [tmpFile, tmpFile + '.bak', tmpFile + '.tmp']) {
+      if (fs.existsSync(f)) fs.unlinkSync(f)
+    }
   })
 
   describe('list()', () => {
@@ -113,6 +115,38 @@ describe('SessionStore', () => {
 
     it('returns undefined when not found', () => {
       expect(store.findById('nope')).toBeUndefined()
+    })
+  })
+
+  describe('atomic writes', () => {
+    it('creates a backup file before writing', () => {
+      store.save(makeSession({ name: 'First' }))
+      store.save(makeSession({ name: 'Second' }))
+      const bakFile = tmpFile + '.bak'
+      expect(fs.existsSync(bakFile)).toBe(true)
+      const backup = JSON.parse(fs.readFileSync(bakFile, 'utf-8'))
+      expect(backup.sessions[0].name).toBe('First')
+    })
+
+    it('does not leave temp files after write', () => {
+      store.save(makeSession())
+      expect(fs.existsSync(tmpFile + '.tmp')).toBe(false)
+    })
+
+    it('recovers from backup when main file is corrupt', () => {
+      store.save(makeSession({ name: 'Good session' }))
+      fs.writeFileSync(tmpFile, 'corrupted!', 'utf-8')
+      const backup = { version: 1, sessions: [makeSession({ name: 'Good session' })] }
+      fs.writeFileSync(tmpFile + '.bak', JSON.stringify(backup), 'utf-8')
+      const recovered = new SessionStore(tmpFile)
+      expect(recovered.list()[0].name).toBe('Good session')
+    })
+
+    it('returns empty when both main and backup are corrupt', () => {
+      fs.writeFileSync(tmpFile, 'bad', 'utf-8')
+      fs.writeFileSync(tmpFile + '.bak', 'also bad', 'utf-8')
+      const broken = new SessionStore(tmpFile)
+      expect(broken.list()).toEqual([])
     })
   })
 

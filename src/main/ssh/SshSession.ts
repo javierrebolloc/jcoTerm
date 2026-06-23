@@ -73,6 +73,8 @@ export class SshSession extends EventEmitter {
         port: config.port,
         username: config.username,
         readyTimeout: 15_000,
+        keepaliveInterval: 30_000,
+        keepaliveCountMax: 3,
       }
 
       if (config.authMethod === 'password') {
@@ -151,6 +153,14 @@ export class SshSession extends EventEmitter {
         if (this._connected) {
           this._connected = false
           this.emit('error', err)
+        }
+      })
+
+      this.client.on('close', () => {
+        if (this._connected) {
+          this._connected = false
+          this.stream = null
+          this.emit('close', this.id)
         }
       })
 

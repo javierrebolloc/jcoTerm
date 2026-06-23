@@ -287,6 +287,8 @@ export interface ElectronAPI {
     verifyLockPassword(password: string): Promise<IpcResult<{ valid: boolean }>>
     exportSessions(): Promise<IpcResult<{ filePath: string }>>
     importSessions(): Promise<IpcResult<{ imported: number }>>
+    onConfirmClose(cb: (activeCount: number) => void): () => void
+    respondConfirmClose(confirmed: boolean): void
   }
   sftp: {
     listDir(sshSessionId: string, path: string): Promise<IpcResult<SftpEntry[]>>

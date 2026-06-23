@@ -99,6 +99,7 @@ export default function TabBar({
             onContextMenu={(e) => handleContextMenu(e, tab.sshSessionId)}
             title={tab.label}
           >
+            <span className={styles.statusDot} />
             <span className={styles.label}>{tab.label}</span>
             <button
               className={styles.closeBtn}

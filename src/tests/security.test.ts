@@ -183,12 +183,12 @@ describe('sanitizeSshError', () => {
     )
   })
 
-  it('returns a generic message for unrecognized errors', () => {
+  it('returns a generic message with detail for unrecognized errors', () => {
     expect(sanitizeSshError('some unknown error')).toBe(
-      'Error de conexión SSH. Consulta el log para más detalles.',
+      'Error: some unknown error. Consulta el log para más detalles.',
     )
     expect(sanitizeSshError('unexpected EOF')).toBe(
-      'Error de conexión SSH. Consulta el log para más detalles.',
+      'Error: unexpected EOF. Consulta el log para más detalles.',
     )
   })
 })

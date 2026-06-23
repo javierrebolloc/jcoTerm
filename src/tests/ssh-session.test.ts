@@ -160,6 +160,44 @@ describe('SshSession', () => {
     })
   })
 
+  describe('keepalive and timeout', () => {
+    it('configures keepaliveInterval and keepaliveCountMax in connect', async () => {
+      const connectPromise = session.connect(PASSWORD_CONFIG)
+      mockClient.emit('ready')
+      await connectPromise
+      expect(mockClient.connect).toHaveBeenCalledWith(
+        expect.objectContaining({
+          keepaliveInterval: 30_000,
+          keepaliveCountMax: 3,
+          readyTimeout: 15_000,
+        }),
+      )
+    })
+  })
+
+  describe('client close event', () => {
+    it('emits close when client connection drops after connect', async () => {
+      const connectPromise = session.connect(PASSWORD_CONFIG)
+      mockClient.emit('ready')
+      await connectPromise
+      expect(session.connected).toBe(true)
+
+      const closeSpy = vi.fn()
+      session.on('close', closeSpy)
+      mockClient.emit('close')
+
+      expect(session.connected).toBe(false)
+      expect(closeSpy).toHaveBeenCalledWith('test-uuid-1234')
+    })
+
+    it('does not emit close if not connected', () => {
+      const closeSpy = vi.fn()
+      session.on('close', closeSpy)
+      mockClient.emit('close')
+      expect(closeSpy).not.toHaveBeenCalled()
+    })
+  })
+
   describe('disconnect()', () => {
     it('closes the stream and calls client.end', async () => {
       const connectPromise = session.connect(PASSWORD_CONFIG)

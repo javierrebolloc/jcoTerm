@@ -115,6 +115,7 @@ interface FolderNodeProps {
   allFolders: SavedFolder[]
   allSessions: SavedSessionWithStatus[]
   connectingSessionId: string | null
+  activeSessionIds: Set<string>
   onConnect: (s: SavedSessionWithStatus) => void
   onEdit: (s: SavedSessionWithStatus) => void
   onDeleteSession: (id: string, name: string) => void
@@ -126,7 +127,7 @@ interface FolderNodeProps {
 }
 
 function FolderNode({
-  folder, depth, allFolders, allSessions, connectingSessionId,
+  folder, depth, allFolders, allSessions, connectingSessionId, activeSessionIds,
   onConnect, onEdit, onDeleteSession,
   onMoveSession, onMoveFolder,
   onRenameFolder, onDeleteFolder, onContextMenu,
@@ -229,6 +230,7 @@ function FolderNode({
               key={s.id}
               session={s}
               connecting={connectingSessionId === s.id}
+              active={activeSessionIds.has(s.id)}
               onConnect={onConnect}
               onEdit={onEdit}
               onDelete={onDeleteSession}
@@ -243,6 +245,7 @@ function FolderNode({
               allFolders={allFolders}
               allSessions={allSessions}
               connectingSessionId={connectingSessionId}
+              activeSessionIds={activeSessionIds}
               onConnect={onConnect}
               onEdit={onEdit}
               onDeleteSession={onDeleteSession}
@@ -270,6 +273,7 @@ function FolderNode({
 interface SessionListProps {
   sessions: SavedSessionWithStatus[]
   connectingSessionId: string | null
+  activeSessionIds: Set<string>
   onConnect: (session: SavedSessionWithStatus) => void
   onEdit: (session: SavedSessionWithStatus) => void
   onDelete: (id: string, name: string) => void
@@ -281,7 +285,7 @@ interface ContextMenuState {
 }
 
 export default function SessionList({
-  sessions, connectingSessionId, onConnect, onEdit, onDelete, onRefresh,
+  sessions, connectingSessionId, activeSessionIds, onConnect, onEdit, onDelete, onRefresh,
 }: SessionListProps): JSX.Element {
   const { t } = useTranslation()
   const [folders, setFolders] = useState<SavedFolder[]>([])
@@ -421,7 +425,7 @@ export default function SessionList({
           onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); openContextMenu(e) }}
         >
           {rootSessions.map((s) => (
-            <SessionItem key={s.id} session={s} connecting={connectingSessionId === s.id} onConnect={onConnect} onEdit={onEdit} onDelete={onDelete} />
+            <SessionItem key={s.id} session={s} connecting={connectingSessionId === s.id} active={activeSessionIds.has(s.id)} onConnect={onConnect} onEdit={onEdit} onDelete={onDelete} />
           ))}
         </div>
 
@@ -434,6 +438,7 @@ export default function SessionList({
             allFolders={folders}
             allSessions={sessions}
             connectingSessionId={connectingSessionId}
+            activeSessionIds={activeSessionIds}
             onConnect={onConnect}
             onEdit={onEdit}
             onDeleteSession={onDelete}
