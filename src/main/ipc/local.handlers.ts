@@ -1,4 +1,4 @@
-import { ipcMain, app } from 'electron'
+import { ipcMain, app, shell } from 'electron'
 import fs from 'fs/promises'
 import path from 'path'
 import os from 'os'
@@ -71,5 +71,16 @@ export function registerLocalHandlers(): void {
       }
     }
     return { success: true, data: drives }
+  })
+
+  // local:openFile — open a local file with the default system application
+  ipcMain.handle(IPC.LOCAL.OPEN_FILE, async (_event, filePath: unknown): Promise<IpcResult> => {
+    if (!isValidLocalPath(filePath)) return { success: false, error: t('errors.local.invalidPath') }
+    const resolved = path.resolve(filePath)
+    const home = path.resolve(app.getPath('home'))
+    if (!resolved.startsWith(home)) return { success: false, error: t('errors.local.invalidPath') }
+    const errMsg = await shell.openPath(resolved)
+    if (errMsg) return { success: false, error: errMsg }
+    return { success: true }
   })
 }

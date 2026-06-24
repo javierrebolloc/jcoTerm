@@ -55,13 +55,6 @@ export function useTerminal({ sessionId, isActive, fitKey, scrollback, fontSize,
     const container = containerRef.current
     if (!container) return
 
-    const errorHandler = (e: ErrorEvent): void => {
-      if (e.filename?.includes('xterm') && e.message?.includes('dimensions')) {
-        e.preventDefault()
-      }
-    }
-    window.addEventListener('error', errorHandler)
-
     const wrapper = document.createElement('div')
     wrapper.style.width = '100%'
     wrapper.style.height = '100%'
@@ -112,7 +105,7 @@ export function useTerminal({ sessionId, isActive, fitKey, scrollback, fontSize,
         fitAddonRef.current = fitAddon
         for (const chunk of pendingWritesRef.current) term.write(chunk)
         pendingWritesRef.current = []
-        fitAndResize()
+        if (wrapper.offsetWidth > 0) fitAndResize()
       } catch {
         if (attempt < 5) requestAnimationFrame(() => openTerminal(attempt + 1))
       }
@@ -172,7 +165,7 @@ export function useTerminal({ sessionId, isActive, fitKey, scrollback, fontSize,
 
     let resizeTimer: ReturnType<typeof setTimeout> | null = null
     const observer = new ResizeObserver(() => {
-      if (!isActiveRef.current || !openedRef.current) return
+      if (!isActiveRef.current || !openedRef.current || container.offsetWidth === 0) return
       if (resizeTimer) clearTimeout(resizeTimer)
       resizeTimer = setTimeout(fitAndResize, 100)
     })
@@ -188,7 +181,6 @@ export function useTerminal({ sessionId, isActive, fitKey, scrollback, fontSize,
       container.removeEventListener('contextmenu', handleContextMenu)
       term.dispose()
       wrapper.remove()
-      window.removeEventListener('error', errorHandler)
       termRef.current = null
       fitAddonRef.current = null
       openedRef.current = false

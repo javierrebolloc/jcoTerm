@@ -219,6 +219,7 @@
   "settings.ai.maximum": "maximum",
   "settings.ai.keySaved": "saved",
   "settings.general.restartNotice": "Restart the application to apply the language change.",
+  "settings.general.languageApplyOnSave": "Language will change when you save.",
 
   "splash.title": "jcoTerm",
 

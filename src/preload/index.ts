@@ -147,6 +147,16 @@ const api: ElectronAPI = {
     },
     respondConfirmClose: (confirmed: boolean): void =>
       ipcRenderer.send(IPC.APP.CONFIRM_CLOSE_RESPONSE, confirmed),
+    onMenuOpenSettings: (cb: () => void): (() => void) => {
+      const handler = (): void => cb()
+      ipcRenderer.on(IPC.APP.MENU_OPEN_SETTINGS, handler)
+      return () => ipcRenderer.removeListener(IPC.APP.MENU_OPEN_SETTINGS, handler)
+    },
+    onMenuOpenAbout: (cb: () => void): (() => void) => {
+      const handler = (): void => cb()
+      ipcRenderer.on(IPC.APP.MENU_OPEN_ABOUT, handler)
+      return () => ipcRenderer.removeListener(IPC.APP.MENU_OPEN_ABOUT, handler)
+    },
   },
 
   sftp: {
@@ -205,6 +215,9 @@ const api: ElectronAPI = {
 
     drives: (): Promise<IpcResult<string[]>> =>
       ipcRenderer.invoke(IPC.LOCAL.DRIVES),
+
+    openFile: (filePath: string): Promise<IpcResult> =>
+      ipcRenderer.invoke(IPC.LOCAL.OPEN_FILE, filePath),
   },
 
   settings: {

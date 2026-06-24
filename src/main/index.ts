@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, shell, Menu } from 'electron'
 import path from 'path'
 import fs from 'fs'
 import Store from 'electron-store'
@@ -10,7 +10,7 @@ import { registerSettingsHandlers } from './ipc/settings.handlers'
 import { registerCredentialHandlers } from './ipc/credential.handlers'
 import { registerFolderHandlers } from './ipc/folder.handlers'
 import { registerAiHandlers } from './ipc/ai.handlers'
-import { registerSftpHandlers } from './ipc/sftp.handlers'
+import { registerSftpHandlers, cleanupEditWatchers } from './ipc/sftp.handlers'
 import { registerLocalHandlers } from './ipc/local.handlers'
 import { SessionStore } from './storage/SessionStore'
 import { CredentialStore } from './storage/CredentialStore'
@@ -280,9 +280,54 @@ app.whenReady().then(() => {
   app.on('before-quit', () => {
     credentialStore.clearEncryptionKey()
     cleanupSshHandlers()
+    cleanupEditWatchers()
   })
 
   const mainWindow = createWindow()
+
+  const menuTemplate: Electron.MenuItemConstructorOptions[] = [
+    {
+      label: 'jcoTerm',
+      submenu: [
+        { label: 'Settings', accelerator: 'CmdOrCtrl+,', click: () => mainWindow.webContents.send(IPC.APP.MENU_OPEN_SETTINGS) },
+        { type: 'separator' },
+        { label: 'Quit', accelerator: 'CmdOrCtrl+Q', click: () => app.quit() },
+      ],
+    },
+    {
+      label: 'Edit',
+      submenu: [
+        { role: 'undo' },
+        { role: 'redo' },
+        { type: 'separator' },
+        { role: 'cut' },
+        { role: 'copy' },
+        { role: 'paste' },
+        { role: 'selectAll' },
+      ],
+    },
+    {
+      label: 'View',
+      submenu: [
+        { role: 'reload' },
+        { role: 'forceReload' },
+        { role: 'toggleDevTools' },
+        { type: 'separator' },
+        { role: 'resetZoom' },
+        { role: 'zoomIn' },
+        { role: 'zoomOut' },
+        { type: 'separator' },
+        { role: 'togglefullscreen' },
+      ],
+    },
+    {
+      label: 'Help',
+      submenu: [
+        { label: 'About jcoTerm', click: () => mainWindow.webContents.send(IPC.APP.MENU_OPEN_ABOUT) },
+      ],
+    },
+  ]
+  Menu.setApplicationMenu(Menu.buildFromTemplate(menuTemplate))
 
   let forceClose = false
   mainWindow.on('close', (e) => {

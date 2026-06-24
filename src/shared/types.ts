@@ -290,6 +290,8 @@ export interface ElectronAPI {
     importSessions(): Promise<IpcResult<{ imported: number }>>
     onConfirmClose(cb: (activeCount: number) => void): () => void
     respondConfirmClose(confirmed: boolean): void
+    onMenuOpenSettings(cb: () => void): () => void
+    onMenuOpenAbout(cb: () => void): () => void
   }
   sftp: {
     listDir(sshSessionId: string, path: string): Promise<IpcResult<SftpEntry[]>>
@@ -310,6 +312,7 @@ export interface ElectronAPI {
     listDir(dirPath: string): Promise<IpcResult<LocalEntry[]>>
     homePath(): Promise<IpcResult<string>>
     drives(): Promise<IpcResult<string[]>>
+    openFile(filePath: string): Promise<IpcResult>
   }
   settings: {
     get(): Promise<IpcResult<AppSettings>>

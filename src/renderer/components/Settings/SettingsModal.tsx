@@ -5,6 +5,7 @@ import { useFocusTrap } from '../../hooks/useFocusTrap'
 import styles from './SettingsModal.module.css'
 
 interface SettingsModalProps {
+  defaultSection?: string
   onClose: () => void
 }
 
@@ -35,9 +36,9 @@ const FONT_FAMILIES = [
   { value: "monospace",                                           label: 'monospace' },
 ] as const
 
-export default function SettingsModal({ onClose }: SettingsModalProps): JSX.Element {
+export default function SettingsModal({ defaultSection, onClose }: SettingsModalProps): JSX.Element {
   const [settings, setSettings] = useState<AppSettings | null>(null)
-  const [activeSection, setActiveSection] = useState<SettingsSection>('general')
+  const [activeSection, setActiveSection] = useState<SettingsSection>((defaultSection as SettingsSection) || 'general')
   const [anthropicKeyInput, setAnthropicKeyInput] = useState('')
   const [geminiKeyInput, setGeminiKeyInput] = useState('')
   const [saving, setSaving] = useState(false)
@@ -107,7 +108,9 @@ export default function SettingsModal({ onClose }: SettingsModalProps): JSX.Elem
     setSaved(true)
     setAnthropicKeyInput('')
     setGeminiKeyInput('')
+    setInitialLanguage(settings.language)
     setTimeout(() => setSaved(false), 2000)
+    onClose()
   }
 
   if (!settings) {
@@ -138,7 +141,7 @@ export default function SettingsModal({ onClose }: SettingsModalProps): JSX.Elem
         </select>
         {languageChanged && (
           <p className={styles.restartNotice}>
-            {t('settings.general.restartNotice')}
+            {t('settings.general.languageApplyOnSave')}
           </p>
         )}
       </div>

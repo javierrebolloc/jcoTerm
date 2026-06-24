@@ -54,6 +54,19 @@ async function withSftpSession<T>(
   }
 }
 
+const UNSAFE_WIN_CHARS = /[<>:"|?*\x00-\x1f]/g
+
+function sanitizeFileName(name: string): string {
+  return name.replace(UNSAFE_WIN_CHARS, '_') || 'file'
+}
+
+const activeEditCleanups = new Set<() => void>()
+
+export function cleanupEditWatchers(): void {
+  for (const fn of activeEditCleanups) fn()
+  activeEditCleanups.clear()
+}
+
 export function registerSftpHandlers(sshManager: SshManager): void {
   ipcMain.handle(
     IPC.SFTP.LIST_DIR,
@@ -223,7 +236,7 @@ export function registerSftpHandlers(sshManager: SshManager): void {
       const session = sshManager.getSession(payload.sshSessionId)
       if (!session) return { success: false, error: t('errors.sftp.sessionNotActive') }
 
-      const fileName = path.basename(payload.remotePath)
+      const fileName = sanitizeFileName(path.basename(payload.remotePath))
       const tempDir = path.join(app.getPath('temp'), 'jcoterm-edit')
       fs.mkdirSync(tempDir, { recursive: true })
       const localPath = path.join(tempDir, `${uuidv4().slice(0, 8)}_${fileName}`)
@@ -231,7 +244,11 @@ export function registerSftpHandlers(sshManager: SshManager): void {
       try {
         await session.sftpDownload(payload.remotePath, localPath, () => {})
       } catch (err) {
-        return { success: false, error: (err as Error).message }
+        const rawMsg = (err as Error).message
+        const userMsg = /permission denied/i.test(rawMsg) ? t('errors.sftp.permissionDenied', { hint: '' })
+          : /no such file/i.test(rawMsg) ? t('errors.sftp.notFound', { hint: '' })
+          : t('errors.sftp.generic', { hint: '', message: rawMsg })
+        return { success: false, error: userMsg }
       }
 
       void shell.openPath(localPath)
@@ -239,32 +256,49 @@ export function registerSftpHandlers(sshManager: SshManager): void {
       const sender: WebContents = event.sender
       let debounce: ReturnType<typeof setTimeout> | null = null
       let uploading = false
+      let pendingReupload = false
+
+      const doUpload = (): void => {
+        const currentSession = sshManager.getSession(payload.sshSessionId)
+        if (!currentSession) { cleanup(); return }
+        if (!fs.existsSync(localPath)) { cleanup(); return }
+        uploading = true
+        log.info('[sftp] Re-uploading edited file: %s', payload.remotePath)
+        currentSession.sftpUpload(localPath, payload.remotePath, () => {}).then(() => {
+          log.info('[sftp] Edit re-upload completed: %s', payload.remotePath)
+        }).catch((err) => {
+          const msg = (err as Error).message
+          log.error('[sftp] Edit re-upload failed: %s', msg)
+          if (!sender.isDestroyed()) {
+            sender.send(IPC.SFTP.EDIT_SAVE_ERROR, { remotePath: payload.remotePath, error: msg })
+          }
+        }).finally(() => {
+          uploading = false
+          if (pendingReupload) { pendingReupload = false; doUpload() }
+        })
+      }
+
       const watcher = fs.watch(localPath, () => {
         if (debounce) clearTimeout(debounce)
         debounce = setTimeout(() => {
-          if (uploading) return
-          const currentSession = sshManager.getSession(payload.sshSessionId)
-          if (!currentSession) { watcher.close(); return }
-          uploading = true
-          log.info('[sftp] Re-uploading edited file: %s', payload.remotePath)
-          currentSession.sftpUpload(localPath, payload.remotePath, () => {}).then(() => {
-            log.info('[sftp] Edit re-upload completed: %s', payload.remotePath)
-          }).catch((err) => {
-            const msg = (err as Error).message
-            log.error('[sftp] Edit re-upload failed: %s', msg)
-            if (!sender.isDestroyed()) {
-              sender.send(IPC.SFTP.EDIT_SAVE_ERROR, { remotePath: payload.remotePath, error: msg })
-            }
-          }).finally(() => { uploading = false })
+          if (!fs.existsSync(localPath)) return
+          if (uploading) { pendingReupload = true; return }
+          doUpload()
         }, 500)
       })
 
+      let maxTimer: ReturnType<typeof setTimeout> | null = null
+
       const cleanup = (): void => {
+        if (debounce) clearTimeout(debounce)
+        if (maxTimer) { clearTimeout(maxTimer); maxTimer = null }
         watcher.close()
+        activeEditCleanups.delete(cleanup)
         try { fs.unlinkSync(localPath) } catch { /* already deleted */ }
       }
 
-      setTimeout(cleanup, 3_600_000)
+      activeEditCleanups.add(cleanup)
+      maxTimer = setTimeout(cleanup, 3_600_000)
 
       return { success: true }
     },

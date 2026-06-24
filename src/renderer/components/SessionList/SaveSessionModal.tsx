@@ -80,6 +80,7 @@ export default function SaveSessionModal({
       createdAt: initialSession?.createdAt ?? Date.now(),
       namedCredentialId: namedCredentialId || undefined,
       folderId: folderId || undefined,
+      sortOrder: initialSession?.sortOrder,
     }
 
     const saveKey = authMethod === 'privateKey' && saveDirectKey && !!privateKey

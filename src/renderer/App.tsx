@@ -74,6 +74,7 @@ function AppContent(): JSX.Element {
   const [showNewSession, setShowNewSession] = useState(false)
   const [showCredentials, setShowCredentials] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
+  const [settingsSection, setSettingsSection] = useState<string | undefined>(undefined)
   const [showExplorer, setShowExplorer] = useState(false)
   const [viewMode, setViewMode] = useState<'terminal' | 'sftp'>('terminal')
   const [fitKey, setFitKey] = useState(0)
@@ -332,6 +333,16 @@ function AppContent(): JSX.Element {
     return cleanup
   }, [])
 
+  // ── Menu bar events ────────────────────────────────────────────────────
+  useEffect(() => {
+    const cleanupSettings = window.electronAPI.app.onMenuOpenSettings(() => setShowSettings(true))
+    const cleanupAbout = window.electronAPI.app.onMenuOpenAbout(() => {
+      setShowSettings(true)
+      setSettingsSection('about')
+    })
+    return () => { cleanupSettings(); cleanupAbout() }
+  }, [])
+
   const activeSessionIds = useMemo(
     () => new Set(tabState.tabs.filter((t) => t.savedSessionId).map((t) => t.savedSessionId!)),
     [tabState.tabs],
@@ -515,7 +526,7 @@ function AppContent(): JSX.Element {
         />
       )}
       {showCredentials && <CredentialsModal onClose={() => setShowCredentials(false)} />}
-      {showSettings && <SettingsModal onClose={handleSettingsClose} />}
+      {showSettings && <SettingsModal defaultSection={settingsSection} onClose={() => { handleSettingsClose(); setSettingsSection(undefined) }} />}
 
       {connectionError && (
         <div className={styles.errorToast} role="alert">

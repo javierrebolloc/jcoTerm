@@ -124,7 +124,7 @@ export default function SftpFilePane({
       if (!isRemote && onUpload) {
         items.push({ label: selectedNames.size > 1 ? t('sftp.context.uploadN', { count: selectedNames.size }) : t('sftp.toolbar.upload'), onClick: onUpload })
       }
-      if (isRemote && onEdit && selectedNames.size <= 1) {
+      if (onEdit && selectedNames.size <= 1) {
         const entry = entries.find((e) => e.name === targetName)
         if (entry && !entry.isDirectory) {
           items.push({ label: t('sftp.context.edit'), onClick: () => onEdit(targetName) })
@@ -138,9 +138,17 @@ export default function SftpFilePane({
     return items
   }
 
+  const handleKeyDown = (e: React.KeyboardEvent): void => {
+    if (e.key === 'Delete' && selectedNames.size > 0) {
+      e.preventDefault()
+      void handleDeleteSelected()
+    }
+  }
+
   return (
     <div
       className={`${styles.pane} ${dragOver ? styles.paneDragOver : ''}`}
+      onKeyDown={handleKeyDown}
       onContextMenu={handleContextMenu}
       onDragOver={(e) => {
         if (e.dataTransfer.types.includes(acceptDropType)) {

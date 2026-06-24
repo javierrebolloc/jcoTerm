@@ -382,7 +382,8 @@ export class SshSession extends EventEmitter {
         })
 
         readStream.on('error', (streamErr: Error) => {
-          sftp.end()
+          writeStream.destroy()
+          sftp.unlink(remotePath, () => { sftp.end() })
           reject(new Error(`upload: ${streamErr.message}`))
         })
 

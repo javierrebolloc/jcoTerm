@@ -54,6 +54,7 @@ export const IPC = {
     LIST_DIR: 'local:listDir',
     HOME_PATH: 'local:homePath',
     DRIVES: 'local:drives',
+    OPEN_FILE: 'local:openFile',
   },
   SETTINGS: {
     GET: 'settings:get',
@@ -70,5 +71,7 @@ export const IPC = {
     IMPORT_SESSIONS: 'app:importSessions',
     CONFIRM_CLOSE: 'app:confirmClose',
     CONFIRM_CLOSE_RESPONSE: 'app:confirmCloseResponse',
+    MENU_OPEN_SETTINGS: 'app:menuOpenSettings',
+    MENU_OPEN_ABOUT: 'app:menuOpenAbout',
   },
 } as const

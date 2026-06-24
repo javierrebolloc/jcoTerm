@@ -312,6 +312,12 @@ export default function SftpManager({ sessions }: SftpManagerProps): JSX.Element
     if (result.success) void loadRemoteDir(activeTab.id, activeTab.sshSessionId, activeTab.path)
   }, [activeTab, loadRemoteDir])
 
+  const handleEditLocal = useCallback(async (name: string): Promise<void> => {
+    const filePath = localJoin(localPath, name)
+    const result = await window.electronAPI.local.openFile(filePath)
+    if (!result.success) setErrorToast(result.error ?? 'Open failed')
+  }, [localPath])
+
   const handleEditRemote = useCallback(async (name: string): Promise<void> => {
     if (!activeTab) return
     const remotePath = remoteJoin(activeTab.path, name)
@@ -432,6 +438,7 @@ export default function SftpManager({ sessions }: SftpManagerProps): JSX.Element
             onMkdir={() => {}}
             onDelete={() => {}}
             onRename={() => {}}
+            onEdit={(name) => void handleEditLocal(name)}
             onUpload={connectedSessionId ? () => void handleUpload() : undefined}
             onFileDrop={connectedSessionId ? (d) => void handleDropOnLocal(d) : undefined}
           />

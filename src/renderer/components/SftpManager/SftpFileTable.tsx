@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback, type PointerEvent as ReactPointerEvent } from 'react'
+import { useState, useRef, useEffect, useCallback, useMemo, type PointerEvent as ReactPointerEvent } from 'react'
 import { useTranslation } from '../../hooks/useTranslation'
 import { getLocale } from '../../i18n'
 import styles from './SftpFileTable.module.css'
@@ -127,14 +127,28 @@ export default function SftpFileTable({
     didResizeRef.current = true
     const { col, startX, startW } = resizeRef.current
     const newW = Math.max(40, startW + e.clientX - startX)
-    setColWidths((prev) => ({ ...prev, [col]: newW }))
+    const th = (e.target as HTMLElement).parentElement!
+    th.style.width = `${newW}px`
   }, [])
 
-  const handleResizeEnd = useCallback((): void => {
+  const handleResizeEnd = useCallback((e: ReactPointerEvent<HTMLDivElement>): void => {
+    if (resizeRef.current && didResizeRef.current) {
+      const { col, startX, startW } = resizeRef.current
+      const newW = Math.max(40, startW + e.clientX - startX)
+      setColWidths((prev) => ({ ...prev, [col]: newW }))
+    }
     resizeRef.current = null
   }, [])
 
-  const sorted = [...entries].sort((a, b) => compareEntries(a, b, sortField, sortDir))
+  const handleResizeLost = useCallback((): void => {
+    resizeRef.current = null
+    didResizeRef.current = false
+  }, [])
+
+  const sorted = useMemo(
+    () => [...entries].sort((a, b) => compareEntries(a, b, sortField, sortDir)),
+    [entries, sortField, sortDir],
+  )
 
   useEffect(() => {
     const table = tableRef.current
@@ -213,6 +227,7 @@ export default function SftpFileTable({
       onPointerDown={(e) => handleResizeStart(col, e)}
       onPointerMove={handleResizeMove}
       onPointerUp={handleResizeEnd}
+      onLostPointerCapture={handleResizeLost}
     />
   )
 
