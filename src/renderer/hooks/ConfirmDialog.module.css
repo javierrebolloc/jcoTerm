@@ -1,11 +1,12 @@
 .overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.6);
+  background: var(--color-overlay);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 300;
+  z-index: var(--z-modal-nested);
+  animation: modalFadeIn 0.15s ease-out;
 }
 
 .dialog {
@@ -14,11 +15,12 @@
   border-radius: var(--radius-md);
   width: 420px;
   max-width: calc(100vw - 32px);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  box-shadow: var(--shadow-modal);
   padding: var(--space-xl);
   display: flex;
   flex-direction: column;
   gap: var(--space-lg);
+  animation: modalScaleIn 0.2s ease-out;
 }
 
 .message {
@@ -52,7 +54,7 @@
 
 .confirmBtn {
   background: var(--color-accent);
-  color: #0d1117;
+  color: var(--color-accent-contrast);
   font-weight: 600;
   padding: var(--space-xs) var(--space-lg);
   border-radius: var(--radius-sm);
@@ -66,7 +68,7 @@
 
 .dangerBtn {
   background: var(--color-danger);
-  color: #fff;
+  color: var(--color-on-danger);
   font-weight: 600;
   padding: var(--space-xs) var(--space-lg);
   border-radius: var(--radius-sm);

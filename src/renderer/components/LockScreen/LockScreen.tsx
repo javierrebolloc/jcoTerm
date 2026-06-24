@@ -23,20 +23,31 @@ export default function LockScreen({ onUnlocked }: LockScreenProps): JSX.Element
     if (hasPassword !== null) inputRef.current?.focus()
   }, [hasPassword])
 
-  if (hasPassword === null) return null
+  if (hasPassword === null) return (
+    <div className={styles.lockScreen}>
+      <div className={styles.card}>
+        <h1 className={styles.appName}>jcoTerm</h1>
+      </div>
+    </div>
+  )
 
   const handleUnlock = async (): Promise<void> => {
     if (!password) return
     setLoading(true)
     setError(null)
-    const result = await window.electronAPI.app.verifyLockPassword(password)
-    setLoading(false)
-    if (result.success && result.data?.valid) {
-      onUnlocked()
-    } else {
-      setError(t('lock.wrongPassword'))
-      setPassword('')
-      inputRef.current?.focus()
+    try {
+      const result = await window.electronAPI.app.verifyLockPassword(password)
+      if (result.success && result.data?.valid) {
+        onUnlocked()
+      } else {
+        setError(t('lock.wrongPassword'))
+        setPassword('')
+        inputRef.current?.focus()
+      }
+    } catch (err) {
+      setError((err as Error).message || t('common.connectionError'))
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -45,12 +56,17 @@ export default function LockScreen({ onUnlocked }: LockScreenProps): JSX.Element
     if (password.length < 4) { setError(t('lock.tooShort')); return }
     if (password !== confirmPassword) { setError(t('lock.mismatch')); return }
     setLoading(true)
-    const result = await window.electronAPI.app.setLockPassword(password)
-    setLoading(false)
-    if (result.success) {
-      onUnlocked()
-    } else {
-      setError(result.error ?? 'Error')
+    try {
+      const result = await window.electronAPI.app.setLockPassword(password)
+      if (result.success) {
+        onUnlocked()
+      } else {
+        setError(result.error ?? t('common.connectionError'))
+      }
+    } catch (err) {
+      setError((err as Error).message || t('common.connectionError'))
+    } finally {
+      setLoading(false)
     }
   }
 

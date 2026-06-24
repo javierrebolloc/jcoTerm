@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect, useCallback, type PointerEvent as ReactPointerEvent } from 'react'
 import { useTranslation } from '../../hooks/useTranslation'
 import { getLocale } from '../../i18n'
 import styles from './SftpFileTable.module.css'
@@ -54,7 +54,7 @@ function compareEntries(a: FileEntry, b: FileEntry, field: SortField, dir: SortD
   let cmp = 0
   switch (field) {
     case 'name':
-      cmp = a.name.localeCompare(b.name, 'es', { sensitivity: 'base' })
+      cmp = a.name.localeCompare(b.name, getLocale(), { sensitivity: 'base' })
       break
     case 'size':
       cmp = a.size - b.size
@@ -108,6 +108,32 @@ export default function SftpFileTable({
     }
   }, [renamingName, entries])
 
+  // ── Column resize ──────────────────────────────────────────────────────────
+  const [colWidths, setColWidths] = useState<Record<string, number>>({})
+  const resizeRef = useRef<{ col: string; startX: number; startW: number } | null>(null)
+  const didResizeRef = useRef(false)
+
+  const handleResizeStart = useCallback((col: string, e: ReactPointerEvent<HTMLDivElement>): void => {
+    e.preventDefault()
+    e.stopPropagation()
+    const th = (e.target as HTMLElement).parentElement!
+    resizeRef.current = { col, startX: e.clientX, startW: th.offsetWidth }
+    didResizeRef.current = false
+    ;(e.target as HTMLElement).setPointerCapture(e.pointerId)
+  }, [])
+
+  const handleResizeMove = useCallback((e: ReactPointerEvent<HTMLDivElement>): void => {
+    if (!resizeRef.current) return
+    didResizeRef.current = true
+    const { col, startX, startW } = resizeRef.current
+    const newW = Math.max(40, startW + e.clientX - startX)
+    setColWidths((prev) => ({ ...prev, [col]: newW }))
+  }, [])
+
+  const handleResizeEnd = useCallback((): void => {
+    resizeRef.current = null
+  }, [])
+
   const sorted = [...entries].sort((a, b) => compareEntries(a, b, sortField, sortDir))
 
   useEffect(() => {
@@ -137,6 +163,7 @@ export default function SftpFileTable({
   }, [sorted, renamingName, onSelect])
 
   const handleSort = (field: SortField): void => {
+    if (didResizeRef.current) { didResizeRef.current = false; return }
     if (sortField === field) {
       setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))
     } else {
@@ -180,27 +207,40 @@ export default function SftpFileTable({
     return sortDir === 'asc' ? ' ^' : ' v'
   }
 
+  const resizeHandle = (col: string): JSX.Element => (
+    <div
+      className={styles.resizeHandle}
+      onPointerDown={(e) => handleResizeStart(col, e)}
+      onPointerMove={handleResizeMove}
+      onPointerUp={handleResizeEnd}
+    />
+  )
+
   return (
     <table className={styles.table} ref={tableRef} tabIndex={0}>
       <thead className={styles.thead}>
         <tr className={styles.headerRow}>
           <th className={`${styles.headerCell} ${styles.colIcon}`} />
-          <th className={`${styles.headerCell} ${styles.colName}`} onClick={() => handleSort('name')}>
+          <th className={`${styles.headerCell} ${styles.colName}`} style={colWidths.name ? { width: colWidths.name } : undefined} onClick={() => handleSort('name')}>
             {t('sftp.table.name')}
             <span className={styles.sortIndicator}>{sortIndicator('name')}</span>
+            {resizeHandle('name')}
           </th>
-          <th className={`${styles.headerCell} ${styles.colSize}`} onClick={() => handleSort('size')}>
+          <th className={`${styles.headerCell} ${styles.colSize}`} style={colWidths.size ? { width: colWidths.size } : undefined} onClick={() => handleSort('size')}>
             {t('sftp.table.size')}
             <span className={styles.sortIndicator}>{sortIndicator('size')}</span>
+            {resizeHandle('size')}
           </th>
-          <th className={`${styles.headerCell} ${styles.colDate}`} onClick={() => handleSort('modified')}>
+          <th className={`${styles.headerCell} ${styles.colDate}`} style={colWidths.modified ? { width: colWidths.modified } : undefined} onClick={() => handleSort('modified')}>
             {t('sftp.table.modified')}
             <span className={styles.sortIndicator}>{sortIndicator('modified')}</span>
+            {resizeHandle('modified')}
           </th>
           {showPermissions && (
-            <th className={`${styles.headerCell} ${styles.colPerms}`} onClick={() => handleSort('permissions')}>
+            <th className={`${styles.headerCell} ${styles.colPerms}`} style={colWidths.permissions ? { width: colWidths.permissions } : undefined} onClick={() => handleSort('permissions')}>
               {t('sftp.table.permissions')}
               <span className={styles.sortIndicator}>{sortIndicator('permissions')}</span>
+              {resizeHandle('permissions')}
             </th>
           )}
         </tr>

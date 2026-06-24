@@ -75,7 +75,7 @@ describe('NamedCredentialStore', () => {
       expect(fs.writeFileSync).toHaveBeenCalledWith(
         expect.stringContaining('.tmp'),
         expect.stringContaining('"Work SSH"'),
-        'utf-8',
+        expect.objectContaining({ encoding: 'utf-8' }),
       )
       expect(fs.renameSync).toHaveBeenCalled()
     })

@@ -75,7 +75,7 @@ describe('KnownHostsStore', () => {
       expect(fs.writeFileSync).toHaveBeenCalledWith(
         expect.stringContaining('.tmp'),
         expect.stringContaining('"SHA256:abc123"'),
-        'utf-8',
+        expect.objectContaining({ encoding: 'utf-8' }),
       )
       expect(fs.renameSync).toHaveBeenCalled()
     })

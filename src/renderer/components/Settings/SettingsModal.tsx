@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import type { AppSettings, KnownHostEntry, CursorStyle } from '../../../shared/types'
 import { useTranslation } from '../../hooks/useTranslation'
+import { useFocusTrap } from '../../hooks/useFocusTrap'
 import styles from './SettingsModal.module.css'
 
 interface SettingsModalProps {
@@ -9,18 +10,22 @@ interface SettingsModalProps {
 
 type SettingsSection = 'general' | 'terminal' | 'ai' | 'connections' | 'about'
 
-const ANTHROPIC_MODELS = [
-  { id: 'claude-sonnet-4-6', label: 'Claude Sonnet 4.6 (recomendado)' },
-  { id: 'claude-haiku-4-5-20251001', label: 'Claude Haiku 4.5 (rapido)' },
-  { id: 'claude-opus-4-8', label: 'Claude Opus 4.8 (maximo)' },
-] as const
+function getAnthropicModels(t: (k: string) => string) {
+  return [
+    { id: 'claude-sonnet-4-6', label: `Claude Sonnet 4.6 (${t('settings.ai.recommended')})` },
+    { id: 'claude-haiku-4-5-20251001', label: `Claude Haiku 4.5 (${t('settings.ai.fast')})` },
+    { id: 'claude-opus-4-8', label: `Claude Opus 4.8 (${t('settings.ai.maximum')})` },
+  ]
+}
 
-const GEMINI_MODELS = [
-  { id: 'gemini-2.5-flash-lite', label: 'Gemini 2.5 Flash-Lite (recomendado)' },
-  { id: 'gemini-2.0-flash-lite', label: 'Gemini 2.0 Flash-Lite' },
-  { id: 'gemini-2.0-flash', label: 'Gemini 2.0 Flash' },
-  { id: 'gemini-1.5-flash', label: 'Gemini 1.5 Flash' },
-] as const
+function getGeminiModels(t: (k: string) => string) {
+  return [
+    { id: 'gemini-2.5-flash-lite', label: `Gemini 2.5 Flash-Lite (${t('settings.ai.recommended')})` },
+    { id: 'gemini-2.0-flash-lite', label: 'Gemini 2.0 Flash-Lite' },
+    { id: 'gemini-2.0-flash', label: 'Gemini 2.0 Flash' },
+    { id: 'gemini-1.5-flash', label: 'Gemini 1.5 Flash' },
+  ]
+}
 
 const FONT_FAMILIES = [
   { value: "'Cascadia Code', Consolas, 'Courier New', monospace", label: 'Cascadia Code' },
@@ -42,6 +47,13 @@ export default function SettingsModal({ onClose }: SettingsModalProps): JSX.Elem
   const [exportImportMsg, setExportImportMsg] = useState<string | null>(null)
 
   const { t } = useTranslation()
+  const trapRef = useFocusTrap<HTMLDivElement>()
+
+  useEffect(() => {
+    const h = (e: KeyboardEvent): void => { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', h)
+    return () => window.removeEventListener('keydown', h)
+  }, [onClose])
 
   const languageChanged = settings !== null && initialLanguage !== null && settings.language !== initialLanguage
 
@@ -100,7 +112,7 @@ export default function SettingsModal({ onClose }: SettingsModalProps): JSX.Elem
 
   if (!settings) {
     return (
-      <div className={styles.overlay} onClick={onClose}>
+      <div className={styles.overlay} ref={trapRef} onClick={onClose}>
         <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
           <p className={styles.loading}>{t('settings.loading')}</p>
         </div>
@@ -126,9 +138,7 @@ export default function SettingsModal({ onClose }: SettingsModalProps): JSX.Elem
         </select>
         {languageChanged && (
           <p className={styles.restartNotice}>
-            {settings.language === 'es'
-              ? 'Reinicia la aplicacion para aplicar el cambio de idioma.'
-              : 'Restart the application to apply the language change.'}
+            {t('settings.general.restartNotice')}
           </p>
         )}
       </div>
@@ -292,7 +302,7 @@ export default function SettingsModal({ onClose }: SettingsModalProps): JSX.Elem
             type="password"
             value={anthropicKeyInput}
             onChange={(e) => setAnthropicKeyInput(e.target.value)}
-            placeholder={settings.anthropicApiKeySet ? '••••••••  (guardada)' : 'sk-ant-api03-...'}
+            placeholder={settings.anthropicApiKeySet ? `••••••••  (${t('settings.ai.keySaved')})` : 'sk-ant-api03-...'}
             autoComplete="off"
           />
           <p className={styles.note}>
@@ -311,7 +321,7 @@ export default function SettingsModal({ onClose }: SettingsModalProps): JSX.Elem
               setSettings((prev) => prev && { ...prev, anthropicModel: e.target.value })
             }
           >
-            {ANTHROPIC_MODELS.map((m) => (
+            {getAnthropicModels(t).map((m) => (
               <option key={m.id} value={m.id}>{m.label}</option>
             ))}
           </select>
@@ -328,7 +338,7 @@ export default function SettingsModal({ onClose }: SettingsModalProps): JSX.Elem
             type="password"
             value={geminiKeyInput}
             onChange={(e) => setGeminiKeyInput(e.target.value)}
-            placeholder={settings.geminiApiKeySet ? '••••••••  (guardada)' : 'AIza...'}
+            placeholder={settings.geminiApiKeySet ? `••••••••  (${t('settings.ai.keySaved')})` : 'AIza...'}
             autoComplete="off"
           />
           <p className={styles.note}>
@@ -347,7 +357,7 @@ export default function SettingsModal({ onClose }: SettingsModalProps): JSX.Elem
               setSettings((prev) => prev && { ...prev, geminiModel: e.target.value })
             }
           >
-            {GEMINI_MODELS.map((m) => (
+            {getGeminiModels(t).map((m) => (
               <option key={m.id} value={m.id}>{m.label}</option>
             ))}
           </select>
@@ -476,7 +486,7 @@ export default function SettingsModal({ onClose }: SettingsModalProps): JSX.Elem
   }
 
   return (
-    <div className={styles.overlay} onClick={onClose}>
+    <div className={styles.overlay} ref={trapRef} onClick={onClose}>
       <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
         {/* ── Sidebar ── */}
         <div className={styles.sidebar}>

@@ -1,4 +1,4 @@
-import { useReducer, useState, useEffect, useCallback, useRef } from 'react'
+import { useReducer, useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import SessionList from './components/SessionList/SessionList'
 import Terminal, { type SplitCount } from './components/Terminal/Terminal'
 import AiChat from './components/AiChat/AiChat'
@@ -10,6 +10,7 @@ import CredentialsModal from './components/Credentials/CredentialsModal'
 import SettingsModal from './components/Settings/SettingsModal'
 import SplashScreen from './components/SplashScreen/SplashScreen'
 import LockScreen from './components/LockScreen/LockScreen'
+import ErrorBoundary from './components/ErrorBoundary/ErrorBoundary'
 import { LanguageProvider } from './hooks/LanguageContext'
 import { useTranslation } from './hooks/useTranslation'
 import { ConfirmProvider, useConfirm } from './hooks/useConfirm'
@@ -75,6 +76,7 @@ function AppContent(): JSX.Element {
   const [showSettings, setShowSettings] = useState(false)
   const [showExplorer, setShowExplorer] = useState(false)
   const [viewMode, setViewMode] = useState<'terminal' | 'sftp'>('terminal')
+  const [fitKey, setFitKey] = useState(0)
   const [splitCount, setSplitCount] = useState<SplitCount>(0)
   const [showSplitMenu, setShowSplitMenu] = useState(false)
   const [multiExec, setMultiExec] = useState(false)
@@ -97,6 +99,11 @@ function AppContent(): JSX.Element {
   const terminalContentRef = useRef<(() => string) | null>(null)
 
   const { t } = useTranslation()
+
+  const confirmRef = useRef(confirm)
+  confirmRef.current = confirm
+  const tRef = useRef(t)
+  tRef.current = t
 
   const refreshSessions = useCallback(async (): Promise<void> => {
     const result = await window.electronAPI.sessions.list()
@@ -161,8 +168,8 @@ function AppContent(): JSX.Element {
           dispatch({ type: 'ADD_TAB', tab: { sshSessionId: result.sessionId, label: session.name, savedSessionId: session.id } })
         } else if (result.hostKeyUnknown && result.fingerprint) {
           setConnectingSessionId(null)
-          const accepted = await confirm(
-            t('app.hostKeyConfirm', { host: session.host, port: session.port, fingerprint: result.fingerprint }),
+          const accepted = await confirmRef.current(
+            tRef.current('app.hostKeyConfirm', { host: session.host, port: session.port, fingerprint: result.fingerprint }),
           )
           if (accepted) {
             await window.electronAPI.ssh.acceptHostKey(session.host, session.port, result.fingerprint)
@@ -170,11 +177,11 @@ function AppContent(): JSX.Element {
             return
           }
         } else if (result.hostKeyMismatch && result.fingerprint) {
-          setConnectionError(t('app.hostKeyChanged', { host: session.host, fingerprint: result.fingerprint }))
+          setConnectionError(tRef.current('app.hostKeyChanged', { host: session.host, fingerprint: result.fingerprint }))
         } else if (result.credentialRequired) {
           setConnectingSession(session)
         } else {
-          setConnectionError(result.error ?? t('common.connectionError'))
+          setConnectionError(result.error ?? tRef.current('common.connectionError'))
         }
       } finally {
         setConnectingSessionId((prev) => prev === session.id ? null : prev)
@@ -211,9 +218,7 @@ function AppContent(): JSX.Element {
   const handleTabClose = useCallback((sshSessionId: string) => {
     void window.electronAPI.ssh.disconnect(sshSessionId)
     dispatch({ type: 'REMOVE_TAB', sshSessionId })
-    // Exit split if remaining sessions drop below split count
-    setSplitCount((prev) => (prev > 0 && tabState.tabs.length - 1 < prev ? 0 : prev))
-  }, [tabState.tabs.length])
+  }, [])
 
   const handleTabSelect = useCallback((sshSessionId: string) => {
     dispatch({ type: 'SET_ACTIVE', sshSessionId })
@@ -233,17 +238,12 @@ function AppContent(): JSX.Element {
     ids.forEach((id) => void window.electronAPI.ssh.disconnect(id))
   }, [])
 
-  const exitSplitIfNeeded = useCallback((remainingCount: number): void => {
-    setSplitCount((prev) => (prev > 0 && remainingCount < prev ? 0 : prev))
-  }, [])
-
   const handleCloseOthers = useCallback((sshSessionId: string): void => {
     const toClose = tabState.tabs.filter((t) => t.sshSessionId !== sshSessionId).map((t) => t.sshSessionId)
     disconnectAll(toClose)
     dispatch({ type: 'REMOVE_TABS', sshSessionIds: toClose })
     dispatch({ type: 'SET_ACTIVE', sshSessionId })
-    exitSplitIfNeeded(1)
-  }, [tabState.tabs, disconnectAll, exitSplitIfNeeded])
+  }, [tabState.tabs, disconnectAll])
 
   const handleCloseAll = useCallback((): void => {
     disconnectAll(tabState.tabs.map((t) => t.sshSessionId))
@@ -256,8 +256,7 @@ function AppContent(): JSX.Element {
     const toClose = tabState.tabs.slice(idx + 1).map((t) => t.sshSessionId)
     disconnectAll(toClose)
     dispatch({ type: 'REMOVE_TABS', sshSessionIds: toClose })
-    exitSplitIfNeeded(tabState.tabs.length - toClose.length)
-  }, [tabState.tabs, disconnectAll, exitSplitIfNeeded])
+  }, [tabState.tabs, disconnectAll])
 
   const handleCloseToLeft = useCallback((sshSessionId: string): void => {
     const idx = tabState.tabs.findIndex((t) => t.sshSessionId === sshSessionId)
@@ -265,13 +264,12 @@ function AppContent(): JSX.Element {
     disconnectAll(toClose)
     dispatch({ type: 'REMOVE_TABS', sshSessionIds: toClose })
     dispatch({ type: 'SET_ACTIVE', sshSessionId })
-    exitSplitIfNeeded(tabState.tabs.length - toClose.length)
-  }, [tabState.tabs, disconnectAll, exitSplitIfNeeded])
+  }, [tabState.tabs, disconnectAll])
 
   // ── Session management ──────────────────────────────────────────────────────
 
   const handleDelete = useCallback(async (id: string, name: string): Promise<void> => {
-    if (!(await confirm(t('session.deleteConfirm', { name }), true))) return
+    if (!(await confirmRef.current(tRef.current('session.deleteConfirm', { name }), true))) return
     await window.electronAPI.sessions.delete(id)
     await refreshSessions()
   }, [refreshSessions])
@@ -281,19 +279,84 @@ function AppContent(): JSX.Element {
     void refreshProviderStatus()
   }, [refreshProviderStatus])
 
+  // ── Keyboard shortcuts ──────────────────────────────────────────────────────
+  useEffect(() => {
+    const handler = (e: KeyboardEvent): void => {
+      const ctrl = e.ctrlKey || e.metaKey
+      if (!ctrl) return
+
+      if (e.key === 'n' || e.key === 'N') {
+        e.preventDefault()
+        setShowNewSession(true)
+      } else if (e.key === 'w' || e.key === 'W') {
+        e.preventDefault()
+        if (tabState.activeTabId) handleTabClose(tabState.activeTabId)
+      } else if (e.key === ',' || e.key === '<') {
+        e.preventDefault()
+        setShowSettings(true)
+      } else if (e.key === 'Tab') {
+        e.preventDefault()
+        if (tabState.tabs.length < 2) return
+        const idx = tabState.tabs.findIndex((t) => t.sshSessionId === tabState.activeTabId)
+        const next = e.shiftKey
+          ? (idx - 1 + tabState.tabs.length) % tabState.tabs.length
+          : (idx + 1) % tabState.tabs.length
+        dispatch({ type: 'SET_ACTIVE', sshSessionId: tabState.tabs[next].sshSessionId })
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [tabState.tabs, tabState.activeTabId, handleTabClose])
+
+  // ── SSH disconnect notification ────────────────────────────────────────────
+  useEffect(() => {
+    const cleanup = window.electronAPI.ssh.onClose((sessionId: string) => {
+      const tab = tabState.tabs.find((t) => t.sshSessionId === sessionId)
+      if (tab) {
+        setConnectionError(tRef.current('app.disconnected', { label: tab.label }))
+        dispatch({ type: 'REMOVE_TAB', sshSessionId: sessionId })
+      }
+    })
+    return cleanup
+  }, [tabState.tabs])
+
+  // ── Close confirmation (styled dialog instead of native) ────────────────
+  useEffect(() => {
+    const cleanup = window.electronAPI.app.onConfirmClose(async (activeCount: number) => {
+      const confirmed = await confirmRef.current(
+        tRef.current('app.confirmClose', { count: activeCount }),
+        true,
+      )
+      window.electronAPI.app.respondConfirmClose(confirmed)
+    })
+    return cleanup
+  }, [])
+
+  const activeSessionIds = useMemo(
+    () => new Set(tabState.tabs.filter((t) => t.savedSessionId).map((t) => t.savedSessionId!)),
+    [tabState.tabs],
+  )
+
   // ── Render ──────────────────────────────────────────────────────────────────
 
   return (
     <LanguageProvider initialLocale={language}>
+    <ErrorBoundary
+      title={t('app.errorBoundaryTitle')}
+      message={t('app.errorBoundaryMessage')}
+      buttonText={t('app.errorBoundaryReload')}
+    >
     <div className={styles.layout}>
       {/* ── Top bar ── */}
       <div className={styles.topBar}>
-        <button className={styles.topBtn} onClick={() => setShowNewSession(true)}>
-          {t('app.newSession')}
+        <button className={styles.topBtn} onClick={() => setShowNewSession(true)} title={t('app.newSession')}>
+          <span className={styles.topIcon}>＋</span>{t('app.newSessionShort')}
         </button>
-        <button className={styles.topBtn} onClick={() => setShowCredentials(true)}>
-          {t('app.credentials')}
+        <button className={styles.topBtn} onClick={() => setShowCredentials(true)} title={t('app.credentials')}>
+          <span className={styles.topIcon}>🔑</span>{t('app.credentialsShort')}
         </button>
+
+        <div className={styles.topSep} />
 
         {/* ── Split button ── */}
         <div
@@ -301,27 +364,23 @@ function AppContent(): JSX.Element {
           onMouseEnter={() => setShowSplitMenu(true)}
           onMouseLeave={() => setShowSplitMenu(false)}
         >
-          <button className={`${styles.topBtn} ${splitCount > 0 ? styles.topBtnActive : ''}`}>
-            {splitCount > 0 ? `Split ${splitCount} ▾` : 'Split ▾'}
+          <button className={`${styles.topBtn} ${splitCount > 0 ? styles.topBtnActive : ''}`} title={t('app.split')}>
+            <span className={styles.topIcon}>⊞</span>{t('app.split')}{splitCount > 0 ? ` ${splitCount}` : ''} ▾
           </button>
           {showSplitMenu && (
             <div className={styles.splitMenu}>
-              {([2, 4, 8] as const).map((n) => {
-                const enough = tabState.tabs.length >= n
-                return (
+              {([2, 4, 8] as const).map((n) => (
                   <button
                     key={n}
                     className={`${styles.splitOption} ${splitCount === n ? styles.splitOptionActive : ''}`}
-                    disabled={!enough}
                     onClick={() => { setSplitCount(splitCount === n ? 0 : n); setShowSplitMenu(false) }}
                   >
-                    <span>Split {n}</span>
-                    <span className={`${styles.splitHint} ${!enough ? styles.splitHintWarn : ''}`}>
+                    <span>{t('app.splitN', { n })}</span>
+                    <span className={styles.splitHint}>
                       {tabState.tabs.length}/{n}
                     </span>
                   </button>
-                )
-              })}
+              ))}
               {splitCount > 0 && (
                 <>
                   <div className={styles.splitSep} />
@@ -344,28 +403,36 @@ function AppContent(): JSX.Element {
           )}
         </div>
 
+        <div className={styles.topSep} />
+
         <button
           className={`${styles.topBtn} ${viewMode === 'terminal' ? styles.topBtnActive : ''}`}
-          onClick={() => setViewMode('terminal')}
+          onClick={() => { setViewMode('terminal'); setFitKey((k) => k + 1) }}
+          title={t('app.ssh')}
         >
-          SSH
+          <span className={styles.topIcon}>&gt;_</span>{t('app.ssh')}
         </button>
         <button
           className={`${styles.topBtn} ${viewMode === 'sftp' ? styles.topBtnActive : ''}`}
           onClick={() => setViewMode('sftp')}
+          title={t('app.sftp')}
         >
-          SFTP
+          <span className={styles.topIcon}>⇅</span>{t('app.sftp')}
         </button>
 
         <div className={styles.topSpacer} />
         <button
-          className={`${styles.settingsBtn} ${showExplorer ? styles.settingsBtnActive : ''}`}
+          className={`${styles.topBtn} ${styles.topBtnIcon} ${showExplorer ? styles.topBtnActive : ''}`}
           onClick={() => setShowExplorer((v) => !v)}
           title={t('app.explorerTitle')}
         >
           📁
         </button>
-        <button className={styles.settingsBtn} onClick={() => setShowSettings(true)} title={t('app.settings')}>
+        <button
+          className={`${styles.topBtn} ${styles.topBtnIcon}`}
+          onClick={() => setShowSettings(true)}
+          title={t('app.settings')}
+        >
           ⚙
         </button>
       </div>
@@ -376,6 +443,7 @@ function AppContent(): JSX.Element {
           <SessionList
             sessions={sessions}
             connectingSessionId={connectingSessionId}
+            activeSessionIds={activeSessionIds}
             onConnect={(s) => void handleConnect(s)}
             onEdit={setEditingSession}
             onDelete={(id, name) => void handleDelete(id, name)}
@@ -384,10 +452,11 @@ function AppContent(): JSX.Element {
         </aside>
 
         <main className={styles.main}>
-          <div style={{ display: viewMode === 'terminal' ? 'flex' : 'none', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+          <div className={`${styles.viewPanel} ${viewMode !== 'terminal' ? styles.viewPanelHidden : ''}`}>
             <Terminal
               tabs={tabState.tabs}
               activeTabId={tabState.activeTabId}
+              fitKey={fitKey}
               splitCount={splitCount}
               multiExec={multiExec}
               multiExecExcluded={multiExecExcluded}
@@ -412,7 +481,7 @@ function AppContent(): JSX.Element {
             />
             <AiChat contentRef={terminalContentRef} provider={aiProvider} providerReady={providerReady} aiContextLines={aiContextLines} aiHistoryLength={aiHistoryLength} />
           </div>
-          <div style={{ display: viewMode === 'sftp' ? 'flex' : 'none', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+          <div className={`${styles.viewPanel} ${viewMode !== 'sftp' ? styles.viewPanelHidden : ''}`}>
             <SftpManager sessions={sessions} />
           </div>
         </main>
@@ -461,6 +530,7 @@ function AppContent(): JSX.Element {
         </div>
       )}
     </div>
+    </ErrorBoundary>
     </LanguageProvider>
   )
 }
@@ -473,13 +543,16 @@ export default function App(): JSX.Element {
 
   useEffect(() => {
     if (phase !== 'splash') return
-    void window.electronAPI.settings.get().then((result) => {
-      if (result.success && result.data?.language) {
-        setInitialLocale(result.data.language)
-      }
+    let settled = false
+    const minDelay = new Promise<void>((r) => setTimeout(r, 2000))
+    const loadSettings = window.electronAPI.settings.get().then((result) => {
+      if (result.success && result.data?.language) setInitialLocale(result.data.language)
+    }).catch(() => {})
+    void Promise.all([minDelay, loadSettings]).then(() => {
+      if (!settled) { settled = true; setPhase('lock') }
     })
-    const timer = setTimeout(() => setPhase('lock'), 5000)
-    return () => clearTimeout(timer)
+    const maxTimer = setTimeout(() => { if (!settled) { settled = true; setPhase('lock') } }, 5000)
+    return () => { settled = true; clearTimeout(maxTimer) }
   }, [phase])
 
   if (phase === 'splash') return <SplashScreen />

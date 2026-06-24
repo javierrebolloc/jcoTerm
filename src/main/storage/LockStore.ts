@@ -9,7 +9,7 @@ interface LockData {
   iterations: number
 }
 
-const ITERATIONS = 100_000
+const ITERATIONS = 600_000
 const VERIFY_KEY_LENGTH = 64
 const ENCRYPTION_KEY_LENGTH = 32 // AES-256
 const DIGEST = 'sha512'

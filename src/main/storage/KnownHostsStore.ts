@@ -33,7 +33,7 @@ export class KnownHostsStore {
     this.cache = hosts
     fs.mkdirSync(path.dirname(this.filePath), { recursive: true })
     const tmp = this.filePath + '.tmp'
-    fs.writeFileSync(tmp, JSON.stringify(hosts, null, 2), 'utf-8')
+    fs.writeFileSync(tmp, JSON.stringify(hosts, null, 2), { encoding: 'utf-8', mode: 0o600 })
     fs.renameSync(tmp, this.filePath)
   }
 

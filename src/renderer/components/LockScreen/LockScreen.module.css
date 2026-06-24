@@ -1,7 +1,7 @@
 .lockScreen {
   position: fixed;
   inset: 0;
-  z-index: 9999;
+  z-index: var(--z-lock);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -78,7 +78,7 @@
   margin-top: var(--space-sm);
   padding: 8px var(--space-lg);
   background: var(--color-accent);
-  color: #fff;
+  color: var(--color-on-danger);
   font-weight: 500;
   font-size: var(--font-size-md);
   border: none;

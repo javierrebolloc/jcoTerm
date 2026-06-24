@@ -47,6 +47,8 @@ export const IPC = {
     DOWNLOAD: 'sftp:download',
     UPLOAD: 'sftp:upload',
     TRANSFER_PROGRESS: 'sftp:transferProgress',
+    EDIT_REMOTE: 'sftp:editRemote',
+    EDIT_SAVE_ERROR: 'sftp:editSaveError',
   },
   LOCAL: {
     LIST_DIR: 'local:listDir',
@@ -66,5 +68,7 @@ export const IPC = {
     VERIFY_LOCK_PASSWORD: 'app:verifyLockPassword',
     EXPORT_SESSIONS: 'app:exportSessions',
     IMPORT_SESSIONS: 'app:importSessions',
+    CONFIRM_CLOSE: 'app:confirmClose',
+    CONFIRM_CLOSE_RESPONSE: 'app:confirmCloseResponse',
   },
 } as const

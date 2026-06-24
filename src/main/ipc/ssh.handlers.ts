@@ -60,6 +60,7 @@ export function registerSshHandlers(
 
       let connectHost = ''
       let connectPort = 22
+      let sessionId = ''
 
       try {
         let config: SshConnectConfig
@@ -106,7 +107,7 @@ export function registerSshHandlers(
           config = buildDirectConfig(params)
         }
 
-        const sessionId = uuidv4()
+        sessionId = uuidv4()
         const session = manager.createSession(sessionId)
 
         session.on('output', ({ sessionId: id, data }: { sessionId: string; data: string }) => {
@@ -116,6 +117,10 @@ export function registerSshHandlers(
         session.on('close', (id: string) => {
           if (!sender.isDestroyed()) sender.send(IPC.SSH.CLOSE, id)
           manager.removeSession(id)
+        })
+
+        session.on('error', (err: Error) => {
+          log.warn(`[ssh] Session ${sessionId} error: ${sanitizeSshError(err.message)}`)
         })
 
         connectHost = config.host
@@ -130,6 +135,7 @@ export function registerSshHandlers(
         log.info('SSH connected: sessionId=%s host=%s', sessionId, connectHost)
         return { success: true, sessionId }
       } catch (err) {
+        if (sessionId) manager.removeSession(sessionId)
         if (err instanceof HostKeyUnknownError) {
           log.warn('SSH connect: unknown host key for %s', connectHost)
           return { success: false, hostKeyUnknown: true, fingerprint: err.fingerprint, error: t('errors.ssh.hostKeyUnknown') }
@@ -153,6 +159,7 @@ export function registerSshHandlers(
 
   ipcMain.on(IPC.SSH.INPUT, (_event, { sessionId, data }: SshInputPayload) => {
     if (!isValidSessionId(sessionId)) return
+    if (typeof data !== 'string' || data.length > 65536) return
     manager.getSession(sessionId)?.write(data)
   })
 

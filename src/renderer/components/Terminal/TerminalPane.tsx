@@ -7,6 +7,7 @@ interface TerminalPaneProps {
   sshSessionId: string
   label: string
   isActive: boolean
+  fitKey: number
   scrollback: number
   fontSize: number
   fontFamily: string
@@ -23,6 +24,7 @@ export default function TerminalPane({
   sshSessionId,
   label,
   isActive,
+  fitKey,
   scrollback,
   fontSize,
   fontFamily,
@@ -38,6 +40,7 @@ export default function TerminalPane({
   const { containerRef, getVisibleContent } = useTerminal({
     sessionId: sshSessionId,
     isActive,
+    fitKey,
     scrollback,
     fontSize,
     fontFamily,

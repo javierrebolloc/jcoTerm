@@ -89,7 +89,7 @@ export default function SftpChmodDialog({ currentMode, onApply, onClose }: SftpC
       <div className={styles.dialog} onMouseDown={(e) => e.stopPropagation()}>
         <div className={styles.header}>
           <span className={styles.title}>{t('sftp.chmod.title')}</span>
-          <button className={styles.closeBtn} onClick={onClose}>x</button>
+          <button className={styles.closeBtn} onClick={onClose}>✕</button>
         </div>
 
         <div className={styles.body}>
@@ -119,7 +119,7 @@ export default function SftpChmodDialog({ currentMode, onApply, onClose }: SftpC
           </div>
 
           <div className={styles.octalRow}>
-            <span className={styles.octalLabel}>Octal:</span>
+            <span className={styles.octalLabel}>{t('sftp.chmod.octal')}</span>
             <input
               className={styles.octalInput}
               value={octalText}

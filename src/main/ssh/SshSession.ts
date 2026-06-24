@@ -73,6 +73,8 @@ export class SshSession extends EventEmitter {
         port: config.port,
         username: config.username,
         readyTimeout: 15_000,
+        keepaliveInterval: 30_000,
+        keepaliveCountMax: 3,
       }
 
       if (config.authMethod === 'password') {
@@ -84,29 +86,40 @@ export class SshSession extends EventEmitter {
         connectConfig.agent = process.env['SSH_AUTH_SOCK'] ?? '\\\\.\\pipe\\openssh-ssh-agent'
       }
 
+      let settled = false
+      const safeReject = (err: Error): void => { if (!settled) { settled = true; reject(err) } }
+      const safeResolve = (): void => { if (!settled) { settled = true; resolve() } }
+
       if (config.hostKeyVerifier) {
         const verifier = config.hostKeyVerifier
         connectConfig.hostVerifier = (key: Buffer) => {
           const fp = 'SHA256:' + crypto.createHash('sha256').update(key).digest('base64')
           const result = verifier(fp)
-          if (result === 'unknown') { reject(new HostKeyUnknownError(fp)); return false }
-          if (result === 'mismatch') { reject(new HostKeyMismatchError(fp)); return false }
+          if (result === 'unknown') { safeReject(new HostKeyUnknownError(fp)); return false }
+          if (result === 'mismatch') { safeReject(new HostKeyMismatchError(fp)); return false }
           return true
         }
       }
 
       const SHELL_TIMEOUT_MS = 10_000
 
+      const onConnectError = (err: Error): void => {
+        safeReject(new Error(`SSH error: ${err.message}`))
+      }
+      this.client.once('error', onConnectError)
+
       this.client.once('ready', () => {
+        this.client.removeListener('error', onConnectError)
+
         const shellTimer = setTimeout(() => {
-          reject(new Error('Shell timeout: el servidor no abrió shell en tiempo'))
+          safeReject(new Error('Shell timeout: server did not open shell in time'))
           this.client.end()
         }, SHELL_TIMEOUT_MS)
 
         this.client.shell({ term: 'xterm-256color' }, (err, stream) => {
           clearTimeout(shellTimer)
           if (err) {
-            reject(new Error(`Failed to open shell: ${err.message}`))
+            safeReject(new Error(`Failed to open shell: ${err.message}`))
             return
           }
 
@@ -132,18 +145,22 @@ export class SshSession extends EventEmitter {
             this.emit('error', streamErr)
           })
 
-          resolve()
+          safeResolve()
         })
-      })
-
-      this.client.once('error', (err) => {
-        reject(new Error(`SSH error: ${err.message}`))
       })
 
       this.client.on('error', (err) => {
         if (this._connected) {
           this._connected = false
           this.emit('error', err)
+        }
+      })
+
+      this.client.on('close', () => {
+        if (this._connected) {
+          this._connected = false
+          this.stream = null
+          this.emit('close', this.id)
         }
       })
 

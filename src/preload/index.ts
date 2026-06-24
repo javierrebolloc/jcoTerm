@@ -140,6 +140,13 @@ const api: ElectronAPI = {
       ipcRenderer.invoke(IPC.APP.EXPORT_SESSIONS),
     importSessions: (): Promise<IpcResult<{ imported: number }>> =>
       ipcRenderer.invoke(IPC.APP.IMPORT_SESSIONS),
+    onConfirmClose: (cb: (activeCount: number) => void): (() => void) => {
+      const handler = (_e: IpcRendererEvent, count: number): void => cb(count)
+      ipcRenderer.on(IPC.APP.CONFIRM_CLOSE, handler)
+      return () => ipcRenderer.removeListener(IPC.APP.CONFIRM_CLOSE, handler)
+    },
+    respondConfirmClose: (confirmed: boolean): void =>
+      ipcRenderer.send(IPC.APP.CONFIRM_CLOSE_RESPONSE, confirmed),
   },
 
   sftp: {
@@ -172,6 +179,15 @@ const api: ElectronAPI = {
 
     upload: (sshSessionId: string, localPath: string, remotePath: string): Promise<IpcResult<{ transferId: string }>> =>
       ipcRenderer.invoke(IPC.SFTP.UPLOAD, { sshSessionId, localPath, remotePath }),
+
+    editRemote: (sshSessionId: string, remotePath: string): Promise<IpcResult> =>
+      ipcRenderer.invoke(IPC.SFTP.EDIT_REMOTE, { sshSessionId, remotePath }),
+
+    onEditSaveError: (cb: (data: { remotePath: string; error: string }) => void): (() => void) => {
+      const handler = (_e: IpcRendererEvent, data: { remotePath: string; error: string }): void => cb(data)
+      ipcRenderer.on(IPC.SFTP.EDIT_SAVE_ERROR, handler)
+      return () => ipcRenderer.removeListener(IPC.SFTP.EDIT_SAVE_ERROR, handler)
+    },
 
     onTransferProgress: (cb: (progress: TransferProgress) => void): (() => void) => {
       const handler = (_e: IpcRendererEvent, progress: TransferProgress): void => cb(progress)

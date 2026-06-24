@@ -1,4 +1,4 @@
-import { useRef, useCallback, useEffect } from 'react'
+import { useRef, useCallback, useEffect, useState } from 'react'
 import TabBar from './TabBar'
 import type { Tab } from './TabBar'
 import TerminalPane from './TerminalPane'
@@ -10,6 +10,7 @@ export type SplitCount = 0 | 2 | 4 | 8
 interface TerminalProps {
   tabs: Tab[]
   activeTabId: string | null
+  fitKey: number
   splitCount: SplitCount
   multiExec: boolean
   multiExecExcluded: Set<string>
@@ -32,6 +33,7 @@ interface TerminalProps {
 export default function Terminal({
   tabs,
   activeTabId,
+  fitKey,
   splitCount,
   multiExec,
   multiExecExcluded,
@@ -63,11 +65,49 @@ export default function Terminal({
 
   const inSplitMode = splitCount > 0
 
+  // ── Split cell assignments ───────────────────────────────────────────────
+  const [splitAssignments, setSplitAssignments] = useState<string[]>([])
+
+  useEffect(() => {
+    if (!inSplitMode) { setSplitAssignments([]); return }
+    setSplitAssignments((prev) => {
+      const validPrev = prev.map((id) => (id && tabs.some((t) => t.sshSessionId === id) ? id : ''))
+      const result = validPrev.length >= splitCount
+        ? validPrev.slice(0, splitCount)
+        : [...validPrev, ...Array(splitCount - validPrev.length).fill('') as string[]]
+      const used = new Set(result.filter(Boolean))
+      const available = tabs.filter((t) => !used.has(t.sshSessionId))
+      let ai = 0
+      for (let i = 0; i < result.length; i++) {
+        if (!result[i] && ai < available.length) {
+          result[i] = available[ai++].sshSessionId
+        }
+      }
+      return result
+    })
+  }, [inSplitMode, splitCount, tabs])
+
+  const handleCellAssign = useCallback((cellIndex: number, sshSessionId: string): void => {
+    setSplitAssignments((prev) => {
+      const next = [...prev]
+      if (sshSessionId === '') {
+        next[cellIndex] = ''
+        return next
+      }
+      const otherIdx = next.indexOf(sshSessionId)
+      if (otherIdx !== -1 && otherIdx !== cellIndex) {
+        next[otherIdx] = next[cellIndex]
+      }
+      next[cellIndex] = sshSessionId
+      return next
+    })
+  }, [])
+
   const multiExecTargets = inSplitMode && multiExec
-    ? tabs.slice(0, splitCount).filter((tab) => !multiExecExcluded.has(tab.sshSessionId)).map((tab) => tab.sshSessionId)
+    ? splitAssignments.filter((id) => id && !multiExecExcluded.has(id))
     : []
 
-  if (tabs.length === 0) {
+  if (tabs.length === 0 && !inSplitMode) {
     return (
       <div className={styles.wrapper}>
         <div className={styles.empty}>
@@ -93,56 +133,94 @@ export default function Terminal({
         />
       )}
 
-      {/* Single container for all panes — never unmounts/remounts on mode switch */}
+      {/* All panes always mounted, keyed by sshSessionId so they never remount */}
       <div
         className={inSplitMode ? styles.splitGrid : styles.panesContainer}
         data-count={inSplitMode ? String(splitCount) : undefined}
       >
-        {tabs.map((tab, idx) => {
-          const isInSplit = inSplitMode && idx < splitCount
+        {/* Empty cell placeholders for split slots without a session */}
+        {inSplitMode && splitAssignments.map((assignedId, cellIdx) => {
+          if (assignedId) return null
+          return (
+            <div key={`empty-${cellIdx}`} className={styles.splitCell} style={{ order: cellIdx }}>
+              <div className={styles.splitCellHeader}>
+                <select
+                  className={styles.splitSelect}
+                  value=""
+                  onChange={(e) => handleCellAssign(cellIdx, e.target.value)}
+                >
+                  <option value="">{t('terminal.emptyCell')}</option>
+                  {tabs.map((t) => (
+                    <option key={t.sshSessionId} value={t.sshSessionId}>{t.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div className={styles.emptyCell}>
+                <span className={styles.emptyCellHint}>{t('terminal.emptyCellHint')}</span>
+              </div>
+            </div>
+          )
+        })}
+        {tabs.map((tab) => {
+          const cellIdx = inSplitMode ? splitAssignments.indexOf(tab.sshSessionId) : -1
+          const isVisibleSplit = inSplitMode && cellIdx !== -1
           const isVisibleNormal = !inSplitMode && tab.sshSessionId === activeTabId
-          const isActive = isInSplit || isVisibleNormal
+          const isActive = isVisibleSplit || isVisibleNormal
+          const isHidden = !isActive
 
           const isExcluded = multiExecExcluded.has(tab.sshSessionId)
-          const pane = (
-            <TerminalPane
-              sshSessionId={tab.sshSessionId}
-              label={tab.label}
-              isActive={isActive}
-              scrollback={scrollback}
-              fontSize={fontSize}
-              fontFamily={fontFamily}
-              cursorStyle={cursorStyle}
-              cursorBlink={cursorBlink}
-              multiExecTargets={multiExecTargets}
-              multiExecExcluded={isExcluded}
-              onToggleMultiExec={inSplitMode && multiExec ? () => onToggleMultiExecExclude(tab.sshSessionId) : undefined}
-              onClose={onTabClose}
-              onRegisterContent={handleRegisterContent}
-            />
+
+          return (
+            <div
+              key={tab.sshSessionId}
+              className={`${inSplitMode && isVisibleSplit ? styles.splitCell : ''} ${isVisibleSplit && tab.sshSessionId === activeTabId ? styles.splitCellActive : ''} ${isHidden ? styles.hiddenPane : ''}`}
+              style={isVisibleSplit ? { order: cellIdx } : undefined}
+              onClick={isVisibleSplit ? () => onTabSelect(tab.sshSessionId) : undefined}
+            >
+              {isVisibleSplit && (
+                <div className={styles.splitCellHeader}>
+                  <select
+                    className={styles.splitSelect}
+                    value={tab.sshSessionId}
+                    onChange={(e) => handleCellAssign(cellIdx, e.target.value)}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <option value="">{t('terminal.emptyCell')}</option>
+                    {tabs.map((t) => (
+                      <option key={t.sshSessionId} value={t.sshSessionId}>
+                        {t.label}
+                      </option>
+                    ))}
+                  </select>
+                  {multiExec && (
+                    <button
+                      className={`${styles.splitMultiExecBtn} ${isExcluded ? styles.splitMultiExecExcluded : ''}`}
+                      onClick={(e) => { e.stopPropagation(); onToggleMultiExecExclude(tab.sshSessionId) }}
+                      title={isExcluded ? t('app.multiExecInclude') : t('app.multiExecExclude')}
+                    >
+                      {isExcluded ? '⊘' : '>>'}
+                    </button>
+                  )}
+                </div>
+              )}
+              <TerminalPane
+                sshSessionId={tab.sshSessionId}
+                label={tab.label}
+                isActive={isActive}
+                fitKey={fitKey}
+                scrollback={scrollback}
+                fontSize={fontSize}
+                fontFamily={fontFamily}
+                cursorStyle={cursorStyle}
+                cursorBlink={cursorBlink}
+                multiExecTargets={isVisibleSplit ? multiExecTargets : []}
+                multiExecExcluded={isExcluded}
+                onToggleMultiExec={isVisibleSplit && multiExec ? () => onToggleMultiExecExclude(tab.sshSessionId) : undefined}
+                onClose={onTabClose}
+                onRegisterContent={handleRegisterContent}
+              />
+            </div>
           )
-
-          if (inSplitMode && isInSplit) {
-            return (
-              <div
-                key={tab.sshSessionId}
-                className={`${styles.splitCell} ${tab.sshSessionId === activeTabId ? styles.splitCellActive : ''}`}
-                onClick={() => onTabSelect(tab.sshSessionId)}
-              >
-                {pane}
-              </div>
-            )
-          }
-
-          if (inSplitMode && !isInSplit) {
-            return (
-              <div key={tab.sshSessionId} className={styles.hiddenPane}>
-                {pane}
-              </div>
-            )
-          }
-
-          return <div key={tab.sshSessionId} style={isActive ? undefined : { display: 'none' }}>{pane}</div>
         })}
       </div>
     </div>

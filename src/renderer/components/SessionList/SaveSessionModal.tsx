@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import type { AuthMethod, NamedCredential, SavedFolder, SavedSessionWithStatus } from '../../../shared/types'
 import { useTranslation } from '../../hooks/useTranslation'
+import { useFocusTrap } from '../../hooks/useFocusTrap'
 import styles from './SaveSessionModal.module.css'
 
 interface SaveSessionModalProps {
@@ -18,6 +19,13 @@ export default function SaveSessionModal({
 }: SaveSessionModalProps): JSX.Element {
   const isEdit = Boolean(initialSession)
   const { t } = useTranslation()
+  const trapRef = useFocusTrap<HTMLDivElement>()
+
+  useEffect(() => {
+    const h = (e: KeyboardEvent): void => { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', h)
+    return () => window.removeEventListener('keydown', h)
+  }, [onClose])
 
   const [name, setName] = useState(initialSession?.name ?? '')
   const [host, setHost] = useState(initialSession?.host ?? '')
@@ -93,7 +101,7 @@ export default function SaveSessionModal({
   }
 
   return (
-    <div className={styles.overlay}>
+    <div className={styles.overlay} ref={trapRef}>
       <div className={styles.modal}>
         <div className={styles.header}>
           <h2>{isEdit ? t('session.save.titleEdit') : t('session.save.titleNew')}</h2>

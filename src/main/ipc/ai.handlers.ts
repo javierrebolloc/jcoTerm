@@ -84,7 +84,7 @@ export function registerAiHandlers(credentialStore: CredentialStore, settingsSto
             },
             onError: (error) => {
               log.error('[ai] Stream error Gemini:', error)
-              sendError(t('errors.ai.contactError', { error }))
+              sendError(t('errors.ai.contactError', { error: 'Gemini stream error' }))
             },
           }, maxTokens, req.history)
 
@@ -106,7 +106,7 @@ export function registerAiHandlers(credentialStore: CredentialStore, settingsSto
           },
           onError: (error) => {
             log.error('[ai] Stream error Anthropic:', error)
-            sendError(t('errors.ai.contactError', { error }))
+            sendError(t('errors.ai.contactError', { error: 'Anthropic stream error' }))
           },
         }, maxTokens, req.history)
 

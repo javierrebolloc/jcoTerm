@@ -28,7 +28,7 @@
   overflow: hidden;
 }
 
-.panesContainer > div {
+.panesContainer > div:not([class*="hiddenPane"]) {
   flex: 1;
   min-height: 0;
   display: flex;
@@ -75,6 +75,65 @@
 
 .splitCellActive {
   outline-color: var(--color-accent);
+}
+
+.splitCellHeader {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 4px;
+  background: var(--color-bg-surface);
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+
+.splitSelect {
+  flex: 1;
+  min-width: 0;
+  background: var(--color-bg-elevated);
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 1px 4px;
+  font-size: 11px;
+  font-family: var(--font-ui);
+  cursor: pointer;
+}
+
+.splitSelect:focus {
+  outline: none;
+  border-color: var(--color-accent);
+}
+
+.splitMultiExecBtn {
+  background: transparent;
+  color: var(--color-accent);
+  font-size: 10px;
+  padding: 1px 4px;
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+}
+
+.splitMultiExecBtn:hover { background: var(--color-bg-hover); }
+
+.splitMultiExecExcluded {
+  color: var(--color-text-muted);
+  opacity: 0.5;
+}
+
+/* ── Empty split cell ── */
+
+.emptyCell {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-bg-base);
+}
+
+.emptyCellHint {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
 }
 
 /* Hidden pane (individual session beyond split count) */

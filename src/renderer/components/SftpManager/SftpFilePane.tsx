@@ -26,6 +26,7 @@ interface SftpFilePaneProps {
   onRename: (oldName: string, newName: string) => void
   onUpload?: () => void
   onDownload?: () => void
+  onEdit?: (name: string) => void
   onChmod?: (name: string) => void
   onFileDrop?: (fileName: string) => void
 }
@@ -55,6 +56,7 @@ export default function SftpFilePane({
   onRename,
   onUpload,
   onDownload,
+  onEdit,
   onChmod,
   onFileDrop,
 }: SftpFilePaneProps): JSX.Element {
@@ -101,23 +103,35 @@ export default function SftpFilePane({
 
   const handleContextMenu = (e: React.MouseEvent): void => {
     e.preventDefault()
-    setContextMenu({ x: e.clientX, y: e.clientY, name: firstSelected })
+    const row = (e.target as HTMLElement).closest('tr[data-name]')
+    const clickedName = row?.getAttribute('data-name') ?? null
+    if (clickedName && !selectedNames.has(clickedName)) {
+      onSelect(new Set([clickedName]))
+    }
+    const effectiveName = clickedName ?? (selectedNames.size > 0 ? [...selectedNames][0] : null)
+    setContextMenu({ x: e.clientX, y: e.clientY, name: effectiveName })
   }
 
-  const contextMenuItems = (): { label: string; onClick: () => void; danger?: boolean }[] => {
+  const contextMenuItems = (targetName: string | null): { label: string; onClick: () => void; danger?: boolean }[] => {
     const items: { label: string; onClick: () => void; danger?: boolean }[] = []
     items.push({ label: t('sftp.context.refresh'), onClick: onRefresh })
     items.push({ label: t('sftp.context.newFolder'), onClick: () => setShowMkdirInput(true) })
 
-    if (firstSelected) {
+    if (targetName) {
       if (isRemote && onDownload) {
         items.push({ label: selectedNames.size > 1 ? t('sftp.context.downloadN', { count: selectedNames.size }) : t('sftp.toolbar.download'), onClick: onDownload })
       }
       if (!isRemote && onUpload) {
         items.push({ label: selectedNames.size > 1 ? t('sftp.context.uploadN', { count: selectedNames.size }) : t('sftp.toolbar.upload'), onClick: onUpload })
       }
-      if (isRemote && onChmod && selectedNames.size === 1) {
-        items.push({ label: t('sftp.context.permissions'), onClick: () => onChmod(firstSelected) })
+      if (isRemote && onEdit && selectedNames.size <= 1) {
+        const entry = entries.find((e) => e.name === targetName)
+        if (entry && !entry.isDirectory) {
+          items.push({ label: t('sftp.context.edit'), onClick: () => onEdit(targetName) })
+        }
+      }
+      if (isRemote && onChmod && selectedNames.size <= 1) {
+        items.push({ label: t('sftp.context.permissions'), onClick: () => onChmod(targetName) })
       }
       items.push({ label: selectedNames.size > 1 ? t('sftp.context.deleteN', { count: selectedNames.size }) : t('sftp.toolbar.delete'), onClick: handleDeleteSelected, danger: true })
     }
@@ -230,7 +244,7 @@ export default function SftpFilePane({
             style={{ flex: 1, fontSize: 'var(--font-size-sm)' }}
           />
           <button className={styles.toolBtn} onClick={handleMkdirSubmit}>{t('sftp.toolbar.create')}</button>
-          <button className={styles.toolBtn} onClick={() => { setShowMkdirInput(false); setMkdirName('') }}>x</button>
+          <button className={styles.toolBtn} onClick={() => { setShowMkdirInput(false); setMkdirName('') }}>✕</button>
         </div>
       )}
 
@@ -260,7 +274,7 @@ export default function SftpFilePane({
         <SftpContextMenu
           x={contextMenu.x}
           y={contextMenu.y}
-          items={contextMenuItems()}
+          items={contextMenuItems(contextMenu.name)}
           onClose={() => setContextMenu(null)}
         />
       )}

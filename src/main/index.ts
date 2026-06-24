@@ -20,7 +20,7 @@ import { SettingsStore } from './storage/SettingsStore'
 import { KnownHostsStore } from './storage/KnownHostsStore'
 import { LockStore } from './storage/LockStore'
 import { IPC } from '../shared/ipc-channels'
-import { setLocale } from '../shared/i18n'
+import { setLocale, t } from '../shared/i18n'
 import type { LogLevel, WindowState, SavedSession, SavedFolder, IpcResult } from '../shared/types'
 
 import { setupPortableMode } from './portable'
@@ -30,10 +30,24 @@ setupPortableMode()
 // Must run before app.whenReady so renderer IPC logging is registered early
 initLogger()
 
+process.on('uncaughtException', (err) => {
+  log.error('[FATAL] Uncaught exception:', err.message, err.stack)
+  cleanupSshHandlers()
+  app.quit()
+})
+
+process.on('unhandledRejection', (reason) => {
+  const msg = reason instanceof Error ? reason.message : String(reason)
+  log.error('[FATAL] Unhandled rejection:', msg)
+})
+
+
+const VALID_LOG_LEVELS: readonly string[] = ['debug', 'info', 'warn', 'error']
 
 function registerLogHandler(): void {
   ipcMain.on(IPC.LOG.SEND, (_event, payload: { level: LogLevel; message: string; args: unknown[] }) => {
     const { level, message, args } = payload
+    if (!VALID_LOG_LEVELS.includes(level)) return
     const prefix = '[renderer]'
     if (args && args.length > 0) {
       log[level](prefix, message, ...args)
@@ -77,6 +91,9 @@ function createWindow(): BrowserWindow {
   win.webContents.on('preload-error', (_event, preloadPath, error) => {
     log.error(`[preload] error in ${preloadPath}: ${error.message}`)
   })
+
+  win.webContents.on('will-navigate', (e) => e.preventDefault())
+  win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
 
   const rendererUrl = process.env['ELECTRON_RENDERER_URL']
   if (rendererUrl) {
@@ -149,10 +166,11 @@ app.whenReady().then(() => {
   })
 
   ipcMain.handle(IPC.APP.SET_LOCK_PASSWORD, (_event, password: unknown): IpcResult => {
-    if (typeof password !== 'string' || password.length < 1) {
+    if (typeof password !== 'string' || password.length < 4) {
       return { success: false, error: 'Invalid password' }
     }
     try {
+      credentialStore.clearEncryptionKey()
       const encryptionKey = lockStore.setPassword(password)
       credentialStore.wipeCredentials()
       credentialStore.setEncryptionKey(encryptionKey)
@@ -194,7 +212,7 @@ app.whenReady().then(() => {
       })
       const folders: SavedFolder[] = folderStore.list()
       const exportData = { version: 1, exportedAt: new Date().toISOString(), sessions, folders }
-      fs.writeFileSync(result.filePath, JSON.stringify(exportData, null, 2), 'utf-8')
+      fs.writeFileSync(result.filePath, JSON.stringify(exportData, null, 2), { encoding: 'utf-8', mode: 0o600 })
       return { success: true, data: { filePath: result.filePath } }
     } catch (err) {
       return { success: false, error: (err as Error).message }
@@ -211,7 +229,10 @@ app.whenReady().then(() => {
         properties: ['openFile'],
       })
       if (result.canceled || result.filePaths.length === 0) return { success: false, error: 'Cancelled' }
-      const raw = fs.readFileSync(result.filePaths[0], 'utf-8')
+      const filePath = result.filePaths[0]
+      const stat = fs.statSync(filePath)
+      if (stat.size > 10 * 1024 * 1024) return { success: false, error: 'File too large (max 10MB)' }
+      const raw = fs.readFileSync(filePath, 'utf-8')
       const data = JSON.parse(raw) as { version?: number; sessions?: SavedSession[]; folders?: SavedFolder[] }
       if (!data.sessions || !Array.isArray(data.sessions)) {
         return { success: false, error: 'Invalid file format' }
@@ -249,15 +270,38 @@ app.whenReady().then(() => {
     }
   })
 
-  createWindow()
+  app.on('window-all-closed', () => {
+    log.info('All windows closed, quitting')
+    credentialStore.clearEncryptionKey()
+    cleanupSshHandlers()
+    app.quit()
+  })
+
+  app.on('before-quit', () => {
+    credentialStore.clearEncryptionKey()
+    cleanupSshHandlers()
+  })
+
+  const mainWindow = createWindow()
+
+  let forceClose = false
+  mainWindow.on('close', (e) => {
+    if (forceClose) return
+    const activeCount = sshManager.activeCount
+    if (activeCount > 0) {
+      e.preventDefault()
+      mainWindow.webContents.send(IPC.APP.CONFIRM_CLOSE, activeCount)
+    }
+  })
+
+  ipcMain.on(IPC.APP.CONFIRM_CLOSE_RESPONSE, (_event, confirmed: boolean) => {
+    if (confirmed) {
+      forceClose = true
+      mainWindow.close()
+    }
+  })
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })
-})
-
-app.on('window-all-closed', () => {
-  log.info('All windows closed, quitting')
-  cleanupSshHandlers()
-  app.quit()
 })

@@ -1,0 +1,80 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-bg-base);
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-lg);
+  padding: var(--space-xl) 40px;
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-danger);
+  border-radius: var(--radius-md);
+  min-width: 360px;
+  max-width: 480px;
+}
+
+.icon {
+  font-size: 40px;
+  line-height: 1;
+  color: var(--color-danger);
+  user-select: none;
+}
+
+.title {
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin: 0;
+  text-align: center;
+}
+
+.message {
+  font-size: var(--font-size-md);
+  color: var(--color-text-secondary);
+  text-align: center;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.errorBlock {
+  width: 100%;
+  max-height: 120px;
+  overflow: auto;
+  padding: var(--space-sm);
+  background: var(--color-bg-base);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.errorBlock code {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.reloadBtn {
+  margin-top: var(--space-sm);
+  padding: 8px var(--space-xl);
+  background: var(--color-accent);
+  color: var(--color-on-danger);
+  font-weight: 500;
+  font-size: var(--font-size-md);
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.reloadBtn:hover {
+  background: var(--color-accent-hover);
+}

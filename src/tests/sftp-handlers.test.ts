@@ -285,7 +285,7 @@ describe('sftp.handlers', () => {
       const result = (await handler(mockEvent, {
         sshSessionId: VALID_SESSION_ID,
         remotePath: '/remote/file.tar.gz',
-        localPath: 'C:\\Users\\test\\Downloads\\file.tar.gz',
+        localPath: '/tmp/test-userData/Downloads/file.tar.gz',
       })) as IpcResult<{ transferId: string }>
       expect(result.success).toBe(true)
       expect(result.data!.transferId).toBe(MOCK_UUID)
@@ -298,11 +298,11 @@ describe('sftp.handlers', () => {
       await handler(mockEvent, {
         sshSessionId: VALID_SESSION_ID,
         remotePath: '/remote/file.bin',
-        localPath: 'C:\\local\\file.bin',
+        localPath: '/tmp/test-userData/file.bin',
       })
       expect(mockSession.sftpDownload).toHaveBeenCalledWith(
         '/remote/file.bin',
-        'C:\\local\\file.bin',
+        '/tmp/test-userData/file.bin',
         expect.any(Function),
       )
       // Simulate calling the progress callback
@@ -321,7 +321,7 @@ describe('sftp.handlers', () => {
       const result = (await handler(mockEvent, {
         sshSessionId: VALID_SESSION_ID,
         remotePath: '',
-        localPath: 'C:\\local\\file.bin',
+        localPath: '/tmp/test-userData/file.bin',
       })) as IpcResult
       expect(result.success).toBe(false)
       expect(result.error).toBe('Ruta remota inválida')
@@ -349,7 +349,7 @@ describe('sftp.handlers', () => {
       const mockEvent = makeMockEvent()
       const result = (await handler(mockEvent, {
         sshSessionId: VALID_SESSION_ID,
-        localPath: 'C:\\Users\\test\\file.zip',
+        localPath: '/tmp/test-userData/file.zip',
         remotePath: '/remote/file.zip',
       })) as IpcResult<{ transferId: string }>
       expect(result.success).toBe(true)
@@ -362,11 +362,11 @@ describe('sftp.handlers', () => {
       const mockEvent = makeMockEvent()
       await handler(mockEvent, {
         sshSessionId: VALID_SESSION_ID,
-        localPath: 'C:\\local\\upload.bin',
+        localPath: '/tmp/test-userData/upload.bin',
         remotePath: '/remote/upload.bin',
       })
       expect(mockSession.sftpUpload).toHaveBeenCalledWith(
-        'C:\\local\\upload.bin',
+        '/tmp/test-userData/upload.bin',
         '/remote/upload.bin',
         expect.any(Function),
       )
@@ -397,7 +397,7 @@ describe('sftp.handlers', () => {
       const mockEvent = makeMockEvent()
       const result = (await handler(mockEvent, {
         sshSessionId: VALID_SESSION_ID,
-        localPath: 'C:\\local\\file.bin',
+        localPath: '/tmp/test-userData/file.bin',
         remotePath: '',
       })) as IpcResult
       expect(result.success).toBe(false)
