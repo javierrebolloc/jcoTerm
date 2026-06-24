@@ -325,6 +325,15 @@ export default function AiChat({ contentRef, provider, providerReady, aiContextL
                   </button>
                 </div>
               ))}
+              {activeTab.messages.length > 0 && (
+                <button
+                  className={styles.clearBtn}
+                  onClick={() => updateTab(activeTabId, (tab) => ({ ...tab, messages: [], input: '' }))}
+                  title={t('ai.clearChat')}
+                >
+                  {t('ai.clearChat')}
+                </button>
+              )}
               <button className={styles.addTab} onClick={addTab} title={t('ai.newChat')}>
                 +
               </button>
@@ -340,7 +349,18 @@ export default function AiChat({ contentRef, provider, providerReady, aiContextL
                   key={m.id}
                   className={`${styles.message} ${m.role === 'user' ? styles.userMessage : styles.assistantMessage}`}
                 >
-                  <span className={styles.messageRole}>{m.role === 'user' ? t('ai.you') : providerLabel}</span>
+                  <div className={styles.messageHeader}>
+                    <span className={styles.messageRole}>{m.role === 'user' ? t('ai.you') : providerLabel}</span>
+                    {m.content && (
+                      <button
+                        className={styles.copyBtn}
+                        onClick={() => void navigator.clipboard.writeText(m.content)}
+                        title={t('ai.copy')}
+                      >
+                        {t('ai.copy')}
+                      </button>
+                    )}
+                  </div>
                   <pre className={styles.messageContent}>{m.content}</pre>
                 </div>
               ))}

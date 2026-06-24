@@ -298,6 +298,7 @@ export default function SessionList({
   const [newFolderName, setNewFolderName] = useState('')
   const [sessionModalFolderId, setSessionModalFolderId] = useState<string | undefined>(undefined)
   const [showSessionModal, setShowSessionModal] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
 
   const refreshFolders = useCallback(async (): Promise<void> => {
     const r = await window.electronAPI.folders.list()
@@ -434,7 +435,11 @@ export default function SessionList({
 
   // ── Tree root ──
 
-  const rootSessions = sessions.filter((s) => !s.folderId)
+  const query = searchQuery.toLowerCase()
+  const filteredSessions = query
+    ? sessions.filter((s) => s.name.toLowerCase().includes(query) || s.host.toLowerCase().includes(query) || s.username.toLowerCase().includes(query))
+    : sessions
+  const rootSessions = filteredSessions.filter((s) => !s.folderId)
   const rootFolders  = folders.filter((f) => !f.parentId)
 
   return (
@@ -446,6 +451,15 @@ export default function SessionList({
           onClick={() => { setCreatingFolderParentId(undefined); setCreatingFolder(true); setNewFolderName('') }}
           title={t('session.newFolder')}
         >📁</button>
+      </div>
+      <div className={styles.searchRow}>
+        <input
+          className={styles.searchInput}
+          type="text"
+          placeholder={t('session.searchPlaceholder')}
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+        />
       </div>
 
       <div
@@ -474,7 +488,7 @@ export default function SessionList({
             folder={folder}
             depth={0}
             allFolders={folders}
-            allSessions={sessions}
+            allSessions={filteredSessions}
             connectingSessionId={connectingSessionId}
             activeSessionIds={activeSessionIds}
             onConnect={onConnect}

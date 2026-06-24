@@ -218,6 +218,12 @@ const api: ElectronAPI = {
 
     openFile: (filePath: string): Promise<IpcResult> =>
       ipcRenderer.invoke(IPC.LOCAL.OPEN_FILE, filePath),
+
+    mkdir: (dirPath: string): Promise<IpcResult> =>
+      ipcRenderer.invoke(IPC.LOCAL.MKDIR, dirPath),
+
+    delete: (filePath: string): Promise<IpcResult> =>
+      ipcRenderer.invoke(IPC.LOCAL.DELETE, filePath),
   },
 
   settings: {

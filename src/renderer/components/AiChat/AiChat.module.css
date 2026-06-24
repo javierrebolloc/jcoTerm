@@ -189,6 +189,19 @@
   color: var(--color-text-primary);
 }
 
+.clearBtn {
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 10px;
+  padding: 2px var(--space-sm);
+  border: none;
+  margin-left: auto;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.clearBtn:hover { color: var(--color-danger); }
+
 /* ── Messages ── */
 
 .messages {
@@ -220,14 +233,35 @@
 .userMessage { align-self: flex-end; align-items: flex-end; }
 .assistantMessage { align-self: flex-start; align-items: flex-start; }
 
+.messageHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--space-xs);
+}
+
 .messageRole {
   font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--color-text-muted);
-  padding: 0 var(--space-xs);
 }
+
+.copyBtn {
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 10px;
+  padding: 1px 4px;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.1s;
+}
+
+.message:hover .copyBtn { opacity: 1; }
+.copyBtn:hover { color: var(--color-accent); background: var(--color-bg-hover); }
 
 .messageContent {
   font-size: var(--font-size-sm);

@@ -77,6 +77,7 @@ function AppContent(): JSX.Element {
   const [settingsSection, setSettingsSection] = useState<string | undefined>(undefined)
   const [showExplorer, setShowExplorer] = useState(false)
   const [viewMode, setViewMode] = useState<'terminal' | 'sftp'>('terminal')
+  const [showAiPanel, setShowAiPanel] = useState(true)
   const [fitKey, setFitKey] = useState(0)
   const [splitCount, setSplitCount] = useState<SplitCount>(0)
   const [showSplitMenu, setShowSplitMenu] = useState(false)
@@ -284,6 +285,22 @@ function AppContent(): JSX.Element {
   useEffect(() => {
     const handler = (e: KeyboardEvent): void => {
       const ctrl = e.ctrlKey || e.metaKey
+
+      if (ctrl && e.shiftKey && (e.key === 'a' || e.key === 'A')) {
+        e.preventDefault()
+        setShowAiPanel((v) => !v)
+        return
+      }
+      if (ctrl && e.shiftKey && (e.key === 's' || e.key === 'S')) {
+        e.preventDefault()
+        setViewMode((v) => {
+          const next = v === 'terminal' ? 'sftp' : 'terminal'
+          if (next === 'terminal') setFitKey((k) => k + 1)
+          return next as 'terminal' | 'sftp'
+        })
+        return
+      }
+
       if (!ctrl) return
 
       if (e.key === 'n' || e.key === 'N') {
@@ -303,6 +320,12 @@ function AppContent(): JSX.Element {
           ? (idx - 1 + tabState.tabs.length) % tabState.tabs.length
           : (idx + 1) % tabState.tabs.length
         dispatch({ type: 'SET_ACTIVE', sshSessionId: tabState.tabs[next].sshSessionId })
+      } else if (e.key >= '1' && e.key <= '9') {
+        e.preventDefault()
+        const idx = parseInt(e.key, 10) - 1
+        if (idx < tabState.tabs.length) {
+          dispatch({ type: 'SET_ACTIVE', sshSessionId: tabState.tabs[idx].sshSessionId })
+        }
       }
     }
     window.addEventListener('keydown', handler)
@@ -490,7 +513,7 @@ function AppContent(): JSX.Element {
               onTabCloseToLeft={handleCloseToLeft}
               contentRef={terminalContentRef}
             />
-            <AiChat contentRef={terminalContentRef} provider={aiProvider} providerReady={providerReady} aiContextLines={aiContextLines} aiHistoryLength={aiHistoryLength} />
+            {showAiPanel && <AiChat contentRef={terminalContentRef} provider={aiProvider} providerReady={providerReady} aiContextLines={aiContextLines} aiHistoryLength={aiHistoryLength} />}
           </div>
           <div className={`${styles.viewPanel} ${viewMode !== 'sftp' ? styles.viewPanelHidden : ''}`}>
             <SftpManager sessions={sessions} />

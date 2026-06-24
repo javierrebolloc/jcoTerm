@@ -55,6 +55,8 @@ export const IPC = {
     HOME_PATH: 'local:homePath',
     DRIVES: 'local:drives',
     OPEN_FILE: 'local:openFile',
+    MKDIR: 'local:mkdir',
+    DELETE: 'local:delete',
   },
   SETTINGS: {
     GET: 'settings:get',

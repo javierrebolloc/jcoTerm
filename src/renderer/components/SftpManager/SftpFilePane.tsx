@@ -142,6 +142,14 @@ export default function SftpFilePane({
     if (e.key === 'Delete' && selectedNames.size > 0) {
       e.preventDefault()
       void handleDeleteSelected()
+    } else if (e.key === 'F2' && selectedNames.size === 1) {
+      e.preventDefault()
+    } else if (e.key === 'F5') {
+      e.preventDefault()
+      onRefresh()
+    } else if (e.key === 'F7') {
+      e.preventDefault()
+      setShowMkdirInput(true)
     }
   }
 

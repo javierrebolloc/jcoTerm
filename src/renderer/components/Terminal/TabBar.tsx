@@ -90,11 +90,14 @@ export default function TabBar({
 
   return (
     <>
-      <div ref={barRef} className={styles.bar}>
+      <div ref={barRef} className={styles.bar} role="tablist">
         {tabs.map((tab) => (
           <div
             key={tab.sshSessionId}
             className={`${styles.tab} ${tab.sshSessionId === activeTabId ? styles.active : ''}`}
+            role="tab"
+            aria-selected={tab.sshSessionId === activeTabId}
+            tabIndex={tab.sshSessionId === activeTabId ? 0 : -1}
             onClick={() => onSelect(tab.sshSessionId)}
             onAuxClick={(e) => { if (e.button === 1) { e.preventDefault(); onClose(tab.sshSessionId) } }}
             onContextMenu={(e) => handleContextMenu(e, tab.sshSessionId)}

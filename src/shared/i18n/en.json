@@ -21,6 +21,7 @@
   "app.hostKeyChanged": "WARNING! The host key of {host} has changed ({fingerprint}). Possible MITM attack. Connection rejected.",
 
   "session.title": "Sessions",
+  "session.searchPlaceholder": "Search sessions...",
   "session.newFolder": "New root folder",
   "session.emptyHint": "Click + New session to save a server",
   "session.newSessionIn": "+ New session{inFolder}",
@@ -96,6 +97,8 @@
   "ai.you": "You",
   "ai.newChat": "New chat",
   "ai.send": "Send",
+  "ai.copy": "Copy",
+  "ai.clearChat": "Clear",
   "ai.unknownError": "Unknown error",
   "ai.quotaExhausted": "Free daily limit reached.{resetNote}",
   "ai.quotaResetAt": " Reset at {time}.",
@@ -160,6 +163,7 @@
   "sftp.transfers.active": "Transferring",
   "sftp.transfers.completed": "Completed",
   "sftp.transfers.error": "Error",
+  "sftp.transfers.failedToast": "Transfer failed: {fileName} — {error}",
 
   "fileExplorer.title": "Explorer",
   "fileExplorer.loading": "Loading...",

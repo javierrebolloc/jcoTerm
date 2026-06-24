@@ -159,7 +159,10 @@ export default function SftpManager({ sessions }: SftpManagerProps): JSX.Element
         prev.map((tr) => {
           if (tr.id !== progress.transferId) return tr
           if (progress.transferred === -1) {
-            if (progress.total === -1) return { ...tr, status: 'error' as const, error: progress.error ?? 'Unknown error' }
+            if (progress.total === -1) {
+              setErrorToast(t('sftp.transfers.failedToast', { fileName: tr.fileName, error: progress.error ?? '' }))
+              return { ...tr, status: 'error' as const, error: progress.error ?? 'Unknown error' }
+            }
             return { ...tr, status: 'completed' as const, transferred: tr.size }
           }
           return { ...tr, transferred: progress.transferred, status: 'active' as const }
@@ -167,7 +170,7 @@ export default function SftpManager({ sessions }: SftpManagerProps): JSX.Element
       )
     })
     return cleanup
-  }, [])
+  }, [t])
 
   // ── Connect / Disconnect ───────────────────────────────────────────────────
 
@@ -312,6 +315,24 @@ export default function SftpManager({ sessions }: SftpManagerProps): JSX.Element
     if (result.success) void loadRemoteDir(activeTab.id, activeTab.sshSessionId, activeTab.path)
   }, [activeTab, loadRemoteDir])
 
+  const handleLocalMkdir = useCallback(async (name: string): Promise<void> => {
+    const dirPath = localJoin(localPath, name)
+    const result = await window.electronAPI.local.mkdir(dirPath)
+    if (result.success) void loadLocalDir(localPath)
+    else setErrorToast(result.error ?? 'mkdir failed')
+  }, [localPath, loadLocalDir])
+
+  const handleLocalDelete = useCallback(async (name: string): Promise<void> => {
+    const filePath = localJoin(localPath, name)
+    const result = await window.electronAPI.local.delete(filePath)
+    if (result.success) {
+      void loadLocalDir(localPath)
+      setSelectedLocal((prev) => { const next = new Set(prev); next.delete(name); return next })
+    } else {
+      setErrorToast(result.error ?? 'delete failed')
+    }
+  }, [localPath, loadLocalDir])
+
   const handleEditLocal = useCallback(async (name: string): Promise<void> => {
     const filePath = localJoin(localPath, name)
     const result = await window.electronAPI.local.openFile(filePath)
@@ -435,8 +456,8 @@ export default function SftpManager({ sessions }: SftpManagerProps): JSX.Element
             onSelect={setSelectedLocal}
             onRefresh={() => void loadLocalDir(localPath)}
             onUpDir={() => void loadLocalDir(localParent(localPath))}
-            onMkdir={() => {}}
-            onDelete={() => {}}
+            onMkdir={(name) => void handleLocalMkdir(name)}
+            onDelete={(name) => void handleLocalDelete(name)}
             onRename={() => {}}
             onEdit={(name) => void handleEditLocal(name)}
             onUpload={connectedSessionId ? () => void handleUpload() : undefined}

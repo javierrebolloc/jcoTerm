@@ -69,7 +69,7 @@ export default function TerminalPane({
         )}
         <button
           className={styles.disconnectBtn}
-          onClick={() => void window.electronAPI.ssh.disconnect(sshSessionId)}
+          onClick={() => onClose(sshSessionId)}
           title={t('terminal.disconnect')}
         >
           {t('terminal.disconnect')}

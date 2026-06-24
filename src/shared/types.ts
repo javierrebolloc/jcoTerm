@@ -313,6 +313,8 @@ export interface ElectronAPI {
     homePath(): Promise<IpcResult<string>>
     drives(): Promise<IpcResult<string[]>>
     openFile(filePath: string): Promise<IpcResult>
+    mkdir(dirPath: string): Promise<IpcResult>
+    delete(filePath: string): Promise<IpcResult>
   }
   settings: {
     get(): Promise<IpcResult<AppSettings>>
