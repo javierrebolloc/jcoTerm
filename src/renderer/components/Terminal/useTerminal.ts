@@ -8,6 +8,7 @@ import 'xterm/css/xterm.css'
 export interface UseTerminalOptions {
   sessionId: string
   isActive: boolean
+  fitKey: number
   scrollback: number
   fontSize: number
   fontFamily: string
@@ -22,20 +23,49 @@ export interface UseTerminalReturn {
   getVisibleContent: () => string
 }
 
-export function useTerminal({ sessionId, isActive, scrollback, fontSize, fontFamily, cursorStyle, cursorBlink, multiExecTargets, onClose }: UseTerminalOptions): UseTerminalReturn {
+export function useTerminal({ sessionId, isActive, fitKey, scrollback, fontSize, fontFamily, cursorStyle, cursorBlink, multiExecTargets, onClose }: UseTerminalOptions): UseTerminalReturn {
   const containerRef = useRef<HTMLDivElement>(null)
   const termRef = useRef<Terminal | null>(null)
   const fitAddonRef = useRef<FitAddon | null>(null)
+  const openedRef = useRef(false)
+  const pendingWritesRef = useRef<string[]>([])
+  const lastSizeRef = useRef<{ cols: number; rows: number }>({ cols: 0, rows: 0 })
   const isActiveRef = useRef(isActive)
 
   const multiExecRef = useRef<string[] | undefined>(multiExecTargets)
   useEffect(() => { isActiveRef.current = isActive }, [isActive])
   useEffect(() => { multiExecRef.current = multiExecTargets }, [multiExecTargets])
 
+  const fitAndResize = useCallback((): void => {
+    const fitAddon = fitAddonRef.current
+    const term = termRef.current
+    if (!fitAddon || !term || !openedRef.current) return
+    try {
+      fitAddon.fit()
+      const { cols, rows } = term
+      if (cols !== lastSizeRef.current.cols || rows !== lastSizeRef.current.rows) {
+        lastSizeRef.current = { cols, rows }
+        window.electronAPI.ssh.resize(sessionId, cols, rows)
+      }
+    } catch { /* disposed */ }
+  }, [sessionId])
+
   // Mount once per sessionId
   useEffect(() => {
     const container = containerRef.current
     if (!container) return
+
+    const errorHandler = (e: ErrorEvent): void => {
+      if (e.filename?.includes('xterm') && e.message?.includes('dimensions')) {
+        e.preventDefault()
+      }
+    }
+    window.addEventListener('error', errorHandler)
+
+    const wrapper = document.createElement('div')
+    wrapper.style.width = '100%'
+    wrapper.style.height = '100%'
+    container.appendChild(wrapper)
 
     const term = new Terminal({
       theme: {
@@ -76,15 +106,18 @@ export function useTerminal({ sessionId, isActive, scrollback, fontSize, fontFam
 
     const openTerminal = (attempt = 0): void => {
       try {
-        term.open(container)
+        term.open(wrapper)
+        openedRef.current = true
+        termRef.current = term
+        fitAddonRef.current = fitAddon
+        for (const chunk of pendingWritesRef.current) term.write(chunk)
+        pendingWritesRef.current = []
+        fitAndResize()
       } catch {
         if (attempt < 5) requestAnimationFrame(() => openTerminal(attempt + 1))
       }
     }
     openTerminal()
-
-    termRef.current = term
-    fitAddonRef.current = fitAddon
 
     const dataDisposable = term.onData((data) => {
       const targets = multiExecRef.current
@@ -118,28 +151,30 @@ export function useTerminal({ sessionId, isActive, scrollback, fontSize, fontFam
     container.addEventListener('contextmenu', handleContextMenu)
 
     const unsubOutput = window.electronAPI.ssh.onOutput((sid, data) => {
-      if (sid === sessionId) term.write(data)
+      if (sid !== sessionId) return
+      if (openedRef.current) {
+        term.write(data)
+      } else {
+        pendingWritesRef.current.push(data)
+      }
     })
 
     const unsubClose = window.electronAPI.ssh.onClose((sid) => {
-      if (sid === sessionId) {
-        term.write(`\r\n\x1b[33m${t('terminal.sessionClosed')}\x1b[0m\r\n`)
-        onClose()
+      if (sid !== sessionId) return
+      const msg = `\r\n\x1b[33m${t('terminal.sessionClosed')}\x1b[0m\r\n`
+      if (openedRef.current) {
+        term.write(msg)
+      } else {
+        pendingWritesRef.current.push(msg)
       }
+      onClose()
     })
 
     let resizeTimer: ReturnType<typeof setTimeout> | null = null
     const observer = new ResizeObserver(() => {
-      if (!isActiveRef.current) return
+      if (!isActiveRef.current || !openedRef.current) return
       if (resizeTimer) clearTimeout(resizeTimer)
-      resizeTimer = setTimeout(() => {
-        try {
-          fitAddon.fit()
-          window.electronAPI.ssh.resize(sessionId, term.cols, term.rows)
-        } catch {
-          // fitAddon may throw if the terminal is disposed
-        }
-      }, 100)
+      resizeTimer = setTimeout(fitAndResize, 100)
     })
     observer.observe(container)
 
@@ -152,43 +187,45 @@ export function useTerminal({ sessionId, isActive, scrollback, fontSize, fontFam
       container.removeEventListener('mouseup', handleMouseUp)
       container.removeEventListener('contextmenu', handleContextMenu)
       term.dispose()
+      wrapper.remove()
+      window.removeEventListener('error', errorHandler)
       termRef.current = null
       fitAddonRef.current = null
+      openedRef.current = false
+      pendingWritesRef.current = []
+      lastSizeRef.current = { cols: 0, rows: 0 }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId])
 
-  // Re-fit when this pane becomes active (tab switch or split activation)
+  // Re-fit when this pane becomes active (tab switch, split activation, or view mode change)
   useEffect(() => {
-    if (!isActive) return
-    const timer = setTimeout(() => {
-      const fitAddon = fitAddonRef.current
-      const term = termRef.current
-      if (!fitAddon || !term) return
-      try {
-        fitAddon.fit()
-        window.electronAPI.ssh.resize(sessionId, term.cols, term.rows)
-      } catch { /* disposed */ }
-    }, 10)
-    return () => clearTimeout(timer)
-  }, [isActive, sessionId])
+    if (!isActive || !openedRef.current) return
+    let cancelled = false
+    const doFit = (attempt = 0): void => {
+      if (cancelled) return
+      const container = containerRef.current
+      if (!container) return
+      if (container.offsetWidth === 0 && attempt < 5) {
+        requestAnimationFrame(() => doFit(attempt + 1))
+        return
+      }
+      fitAndResize()
+    }
+    requestAnimationFrame(() => doFit())
+    return () => { cancelled = true }
+  }, [isActive, fitKey, sessionId, fitAndResize])
 
   // Live-update terminal options when settings change
   useEffect(() => {
     const term = termRef.current
-    if (!term) return
+    if (!term || !openedRef.current) return
     term.options.fontSize = fontSize
     term.options.fontFamily = fontFamily
     term.options.cursorStyle = cursorStyle
     term.options.cursorBlink = cursorBlink
-    const fitAddon = fitAddonRef.current
-    if (fitAddon && isActiveRef.current) {
-      try {
-        fitAddon.fit()
-        window.electronAPI.ssh.resize(sessionId, term.cols, term.rows)
-      } catch { /* disposed */ }
-    }
-  }, [fontSize, fontFamily, cursorStyle, cursorBlink, sessionId])
+    if (isActiveRef.current) fitAndResize()
+  }, [fontSize, fontFamily, cursorStyle, cursorBlink, sessionId, fitAndResize])
 
   const getVisibleContent = useCallback((): string => {
     const term = termRef.current

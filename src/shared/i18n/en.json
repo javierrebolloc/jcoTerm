@@ -65,6 +65,8 @@
   "terminal.emptyHint": "Connect a server from the side panel.",
   "terminal.disconnect": "Disconnect",
   "terminal.sessionClosed": "[Session closed]",
+  "terminal.emptyCell": "-- Empty --",
+  "terminal.emptyCellHint": "No session assigned",
 
   "tabBar.close": "Close",
   "tabBar.clone": "Clone",
@@ -133,6 +135,8 @@
   "sftp.context.newFolder": "New folder",
   "sftp.context.downloadN": "Download ({count})",
   "sftp.context.uploadN": "Upload ({count})",
+  "sftp.context.edit": "Edit",
+  "sftp.editSaveError": "Error saving {fileName}: {error}",
   "sftp.context.permissions": "Permissions",
   "sftp.context.deleteN": "Delete ({count})",
   "sftp.table.name": "Name",
@@ -229,6 +233,7 @@
   "lock.create": "Create password",
   "lock.mismatch": "Passwords do not match",
   "lock.tooShort": "Minimum 4 characters",
+  "lock.close": "Close application",
 
   "settings.connections.export": "Export sessions",
   "settings.connections.import": "Import sessions",

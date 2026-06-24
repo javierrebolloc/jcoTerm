@@ -121,6 +121,7 @@ interface FolderNodeProps {
   onDeleteSession: (id: string, name: string) => void
   onMoveSession: (sessionId: string, targetFolderId: string | undefined) => void
   onMoveFolder: (folderId: string, targetParentId: string | undefined) => void
+  onReorder: (draggedId: string, targetId: string, position: 'before' | 'after') => void
   onRenameFolder: (id: string, name: string) => void
   onDeleteFolder: (id: string) => void
   onContextMenu: (e: React.MouseEvent, folderId: string, folderName: string) => void
@@ -129,7 +130,7 @@ interface FolderNodeProps {
 function FolderNode({
   folder, depth, allFolders, allSessions, connectingSessionId, activeSessionIds,
   onConnect, onEdit, onDeleteSession,
-  onMoveSession, onMoveFolder,
+  onMoveSession, onMoveFolder, onReorder,
   onRenameFolder, onDeleteFolder, onContextMenu,
 }: FolderNodeProps): JSX.Element {
   const { t } = useTranslation()
@@ -225,7 +226,7 @@ function FolderNode({
           className={`${styles.folderItems} ${isDragOver ? styles.dragOver : ''}`}
           {...dropProps}
         >
-          {mySessions.map((s) => (
+          {mySessions.sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0)).map((s) => (
             <SessionItem
               key={s.id}
               session={s}
@@ -234,6 +235,7 @@ function FolderNode({
               onConnect={onConnect}
               onEdit={onEdit}
               onDelete={onDeleteSession}
+              onReorder={onReorder}
             />
           ))}
 
@@ -251,6 +253,7 @@ function FolderNode({
               onDeleteSession={onDeleteSession}
               onMoveSession={onMoveSession}
               onMoveFolder={onMoveFolder}
+              onReorder={onReorder}
               onRenameFolder={onRenameFolder}
               onDeleteFolder={onDeleteFolder}
               onContextMenu={onContextMenu}
@@ -312,6 +315,41 @@ export default function SessionList({
     rlog('info', 'move session %s → folder %s', sessionId, targetFolderId ?? 'root')
     await window.electronAPI.sessions.save({ session: { ...session, folderId: targetFolderId } })
     onRefresh()
+  }, [sessions, onRefresh])
+
+  // ── Reorder session within same folder ──
+
+  const handleReorder = useCallback(async (draggedId: string, targetId: string, position: 'before' | 'after'): Promise<void> => {
+    const dragged = sessions.find((s) => s.id === draggedId)
+    const target = sessions.find((s) => s.id === targetId)
+    if (!dragged || !target) return
+
+    if (dragged.folderId !== target.folderId) {
+      rlog('info', 'reorder: cross-folder, moving %s → folder %s', draggedId, target.folderId ?? 'root')
+    }
+
+    const folderId = target.folderId
+    const siblings = sessions
+      .filter((s) => s.folderId === folderId && s.id !== draggedId)
+      .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
+
+    const targetIdx = siblings.findIndex((s) => s.id === targetId)
+    if (targetIdx === -1) return
+    const insertIdx = position === 'before' ? targetIdx : targetIdx + 1
+    siblings.splice(insertIdx, 0, dragged)
+
+    const saves: Promise<unknown>[] = []
+    for (let i = 0; i < siblings.length; i++) {
+      const s = siblings[i]
+      if (s.sortOrder !== i || s.folderId !== folderId) {
+        saves.push(window.electronAPI.sessions.save({ session: { ...s, folderId, sortOrder: i } }))
+      }
+    }
+    if (saves.length > 0) {
+      rlog('info', 'reorder: %d sessions updated in folder %s', saves.length, folderId ?? 'root')
+      await Promise.all(saves)
+      onRefresh()
+    }
   }, [sessions, onRefresh])
 
   // ── Move folder ──
@@ -424,8 +462,8 @@ export default function SessionList({
           {...rootDropProps}
           onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); openContextMenu(e) }}
         >
-          {rootSessions.map((s) => (
-            <SessionItem key={s.id} session={s} connecting={connectingSessionId === s.id} active={activeSessionIds.has(s.id)} onConnect={onConnect} onEdit={onEdit} onDelete={onDelete} />
+          {rootSessions.sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0)).map((s) => (
+            <SessionItem key={s.id} session={s} connecting={connectingSessionId === s.id} active={activeSessionIds.has(s.id)} onConnect={onConnect} onEdit={onEdit} onDelete={onDelete} onReorder={(...args) => void handleReorder(...args)} />
           ))}
         </div>
 
@@ -444,6 +482,7 @@ export default function SessionList({
             onDeleteSession={onDelete}
             onMoveSession={(...args) => void handleMoveSession(...args)}
             onMoveFolder={(...args) => void handleMoveFolder(...args)}
+            onReorder={(...args) => void handleReorder(...args)}
             onRenameFolder={(...args) => void handleRenameFolder(...args)}
             onDeleteFolder={(...args) => void handleDeleteFolder(...args)}
             onContextMenu={openContextMenu}

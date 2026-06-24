@@ -121,6 +121,21 @@
   opacity: 0.5;
 }
 
+/* ── Empty split cell ── */
+
+.emptyCell {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-bg-base);
+}
+
+.emptyCellHint {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
 /* Hidden pane (individual session beyond split count) */
 .hiddenPane {
   display: none !important;

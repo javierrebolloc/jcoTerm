@@ -34,6 +34,7 @@ export interface SavedSession {
   /** References a NamedCredential for authentication. Takes priority over per-session credentials. */
   namedCredentialId?: string
   folderId?: string
+  sortOrder?: number
 }
 
 /** Extends SavedSession with runtime status that only main knows about. */
@@ -301,6 +302,8 @@ export interface ElectronAPI {
     chmod(sshSessionId: string, path: string, mode: number): Promise<IpcResult>
     download(sshSessionId: string, remotePath: string, localPath: string): Promise<IpcResult<{ transferId: string }>>
     upload(sshSessionId: string, localPath: string, remotePath: string): Promise<IpcResult<{ transferId: string }>>
+    editRemote(sshSessionId: string, remotePath: string): Promise<IpcResult>
+    onEditSaveError(cb: (data: { remotePath: string; error: string }) => void): () => void
     onTransferProgress(cb: (progress: TransferProgress) => void): () => void
   }
   local: {

@@ -83,20 +83,22 @@
 .main {
   flex: 1;
   min-width: 0;
-  display: flex;
-  flex-direction: column;
+  position: relative;
   background: var(--color-bg-base);
   overflow: hidden;
 }
 
 .viewPanel {
+  position: absolute;
+  inset: 0;
   display: flex;
   flex-direction: column;
-  flex: 1;
-  min-height: 0;
 }
 
-.viewPanelHidden { display: none; }
+.viewPanelHidden {
+  visibility: hidden;
+  pointer-events: none;
+}
 
 .rightPanel {
   width: 240px;

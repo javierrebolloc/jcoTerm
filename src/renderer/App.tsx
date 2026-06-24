@@ -76,6 +76,7 @@ function AppContent(): JSX.Element {
   const [showSettings, setShowSettings] = useState(false)
   const [showExplorer, setShowExplorer] = useState(false)
   const [viewMode, setViewMode] = useState<'terminal' | 'sftp'>('terminal')
+  const [fitKey, setFitKey] = useState(0)
   const [splitCount, setSplitCount] = useState<SplitCount>(0)
   const [showSplitMenu, setShowSplitMenu] = useState(false)
   const [multiExec, setMultiExec] = useState(false)
@@ -217,9 +218,7 @@ function AppContent(): JSX.Element {
   const handleTabClose = useCallback((sshSessionId: string) => {
     void window.electronAPI.ssh.disconnect(sshSessionId)
     dispatch({ type: 'REMOVE_TAB', sshSessionId })
-    // Exit split if remaining sessions drop below split count
-    setSplitCount((prev) => (prev > 0 && tabState.tabs.length - 1 < prev ? 0 : prev))
-  }, [tabState.tabs.length])
+  }, [])
 
   const handleTabSelect = useCallback((sshSessionId: string) => {
     dispatch({ type: 'SET_ACTIVE', sshSessionId })
@@ -239,17 +238,12 @@ function AppContent(): JSX.Element {
     ids.forEach((id) => void window.electronAPI.ssh.disconnect(id))
   }, [])
 
-  const exitSplitIfNeeded = useCallback((remainingCount: number): void => {
-    setSplitCount((prev) => (prev > 0 && remainingCount < prev ? 0 : prev))
-  }, [])
-
   const handleCloseOthers = useCallback((sshSessionId: string): void => {
     const toClose = tabState.tabs.filter((t) => t.sshSessionId !== sshSessionId).map((t) => t.sshSessionId)
     disconnectAll(toClose)
     dispatch({ type: 'REMOVE_TABS', sshSessionIds: toClose })
     dispatch({ type: 'SET_ACTIVE', sshSessionId })
-    exitSplitIfNeeded(1)
-  }, [tabState.tabs, disconnectAll, exitSplitIfNeeded])
+  }, [tabState.tabs, disconnectAll])
 
   const handleCloseAll = useCallback((): void => {
     disconnectAll(tabState.tabs.map((t) => t.sshSessionId))
@@ -262,8 +256,7 @@ function AppContent(): JSX.Element {
     const toClose = tabState.tabs.slice(idx + 1).map((t) => t.sshSessionId)
     disconnectAll(toClose)
     dispatch({ type: 'REMOVE_TABS', sshSessionIds: toClose })
-    exitSplitIfNeeded(tabState.tabs.length - toClose.length)
-  }, [tabState.tabs, disconnectAll, exitSplitIfNeeded])
+  }, [tabState.tabs, disconnectAll])
 
   const handleCloseToLeft = useCallback((sshSessionId: string): void => {
     const idx = tabState.tabs.findIndex((t) => t.sshSessionId === sshSessionId)
@@ -271,8 +264,7 @@ function AppContent(): JSX.Element {
     disconnectAll(toClose)
     dispatch({ type: 'REMOVE_TABS', sshSessionIds: toClose })
     dispatch({ type: 'SET_ACTIVE', sshSessionId })
-    exitSplitIfNeeded(tabState.tabs.length - toClose.length)
-  }, [tabState.tabs, disconnectAll, exitSplitIfNeeded])
+  }, [tabState.tabs, disconnectAll])
 
   // ── Session management ──────────────────────────────────────────────────────
 
@@ -323,7 +315,6 @@ function AppContent(): JSX.Element {
       if (tab) {
         setConnectionError(tRef.current('app.disconnected', { label: tab.label }))
         dispatch({ type: 'REMOVE_TAB', sshSessionId: sessionId })
-        setSplitCount((prev) => (prev > 0 && tabState.tabs.length - 1 < prev ? 0 : prev))
       }
     })
     return cleanup
@@ -378,22 +369,18 @@ function AppContent(): JSX.Element {
           </button>
           {showSplitMenu && (
             <div className={styles.splitMenu}>
-              {([2, 4, 8] as const).map((n) => {
-                const enough = tabState.tabs.length >= n
-                return (
+              {([2, 4, 8] as const).map((n) => (
                   <button
                     key={n}
                     className={`${styles.splitOption} ${splitCount === n ? styles.splitOptionActive : ''}`}
-                    disabled={!enough}
                     onClick={() => { setSplitCount(splitCount === n ? 0 : n); setShowSplitMenu(false) }}
                   >
                     <span>{t('app.splitN', { n })}</span>
-                    <span className={`${styles.splitHint} ${!enough ? styles.splitHintWarn : ''}`}>
+                    <span className={styles.splitHint}>
                       {tabState.tabs.length}/{n}
                     </span>
                   </button>
-                )
-              })}
+              ))}
               {splitCount > 0 && (
                 <>
                   <div className={styles.splitSep} />
@@ -420,7 +407,7 @@ function AppContent(): JSX.Element {
 
         <button
           className={`${styles.topBtn} ${viewMode === 'terminal' ? styles.topBtnActive : ''}`}
-          onClick={() => setViewMode('terminal')}
+          onClick={() => { setViewMode('terminal'); setFitKey((k) => k + 1) }}
           title={t('app.ssh')}
         >
           <span className={styles.topIcon}>&gt;_</span>{t('app.ssh')}
@@ -469,6 +456,7 @@ function AppContent(): JSX.Element {
             <Terminal
               tabs={tabState.tabs}
               activeTabId={tabState.activeTabId}
+              fitKey={fitKey}
               splitCount={splitCount}
               multiExec={multiExec}
               multiExecExcluded={multiExecExcluded}

@@ -1,5 +1,6 @@
-import { app, ipcMain, type WebContents } from 'electron'
+import { app, ipcMain, shell, type WebContents } from 'electron'
 import path from 'path'
+import fs from 'fs'
 import { v4 as uuidv4 } from 'uuid'
 import { log } from '../logger'
 import { IPC } from '../../shared/ipc-channels'
@@ -88,9 +89,10 @@ export function registerSftpHandlers(sshManager: SshManager): void {
   ipcMain.handle(
     IPC.SFTP.MKDIR,
     async (_event, payload: { sshSessionId: string; path: string }): Promise<IpcResult> => {
-      return withSftpSession(sshManager, payload.sshSessionId, payload.path, (session) =>
-        session.sftpMkdir(payload.path),
-      )
+      return withSftpSession(sshManager, payload.sshSessionId, payload.path, async (session) => {
+        await session.sftpMkdir(payload.path)
+        return undefined
+      })
     },
   )
 
@@ -98,9 +100,10 @@ export function registerSftpHandlers(sshManager: SshManager): void {
   ipcMain.handle(
     IPC.SFTP.RMDIR,
     async (_event, payload: { sshSessionId: string; path: string }): Promise<IpcResult> => {
-      return withSftpSession(sshManager, payload.sshSessionId, payload.path, (session) =>
-        session.sftpRmdir(payload.path),
-      )
+      return withSftpSession(sshManager, payload.sshSessionId, payload.path, async (session) => {
+        await session.sftpRmdir(payload.path)
+        return undefined
+      })
     },
   )
 
@@ -108,9 +111,10 @@ export function registerSftpHandlers(sshManager: SshManager): void {
   ipcMain.handle(
     IPC.SFTP.UNLINK,
     async (_event, payload: { sshSessionId: string; path: string }): Promise<IpcResult> => {
-      return withSftpSession(sshManager, payload.sshSessionId, payload.path, (session) =>
-        session.sftpUnlink(payload.path),
-      )
+      return withSftpSession(sshManager, payload.sshSessionId, payload.path, async (session) => {
+        await session.sftpUnlink(payload.path)
+        return undefined
+      })
     },
   )
 
@@ -123,9 +127,10 @@ export function registerSftpHandlers(sshManager: SshManager): void {
     ): Promise<IpcResult> => {
       if (!isValidSftpPath(payload.oldPath)) return { success: false, error: t('errors.sftp.invalidSourcePath') }
       if (!isValidSftpPath(payload.newPath)) return { success: false, error: t('errors.sftp.invalidDestPath') }
-      return withSftpSession(sshManager, payload.sshSessionId, undefined, (session) =>
-        session.sftpRename(payload.oldPath, payload.newPath),
-      )
+      return withSftpSession(sshManager, payload.sshSessionId, undefined, async (session) => {
+        await session.sftpRename(payload.oldPath, payload.newPath)
+        return undefined
+      })
     },
   )
 
@@ -139,9 +144,10 @@ export function registerSftpHandlers(sshManager: SshManager): void {
       if (typeof payload.mode !== 'number' || !Number.isInteger(payload.mode) || payload.mode < 0 || payload.mode > 0o7777) {
         return { success: false, error: t('errors.sftp.invalidPermissions') }
       }
-      return withSftpSession(sshManager, payload.sshSessionId, payload.path, (session) =>
-        session.sftpChmod(payload.path, payload.mode),
-      )
+      return withSftpSession(sshManager, payload.sshSessionId, payload.path, async (session) => {
+        await session.sftpChmod(payload.path, payload.mode)
+        return undefined
+      })
     },
   )
 
@@ -202,6 +208,65 @@ export function registerSftpHandlers(sshManager: SshManager): void {
       })
 
       return { success: true, data: { transferId } }
+    },
+  )
+
+  // sftp:editRemote — download to temp, open in default editor, watch & re-upload on save
+  ipcMain.handle(
+    IPC.SFTP.EDIT_REMOTE,
+    async (
+      event,
+      payload: { sshSessionId: string; remotePath: string },
+    ): Promise<IpcResult> => {
+      if (!isValidSftpPath(payload.remotePath)) return { success: false, error: t('errors.sftp.invalidRemotePath') }
+      if (!isValidSessionId(payload.sshSessionId)) return { success: false, error: t('errors.sftp.invalidSessionId') }
+      const session = sshManager.getSession(payload.sshSessionId)
+      if (!session) return { success: false, error: t('errors.sftp.sessionNotActive') }
+
+      const fileName = path.basename(payload.remotePath)
+      const tempDir = path.join(app.getPath('temp'), 'jcoterm-edit')
+      fs.mkdirSync(tempDir, { recursive: true })
+      const localPath = path.join(tempDir, `${uuidv4().slice(0, 8)}_${fileName}`)
+
+      try {
+        await session.sftpDownload(payload.remotePath, localPath, () => {})
+      } catch (err) {
+        return { success: false, error: (err as Error).message }
+      }
+
+      void shell.openPath(localPath)
+
+      const sender: WebContents = event.sender
+      let debounce: ReturnType<typeof setTimeout> | null = null
+      let uploading = false
+      const watcher = fs.watch(localPath, () => {
+        if (debounce) clearTimeout(debounce)
+        debounce = setTimeout(() => {
+          if (uploading) return
+          const currentSession = sshManager.getSession(payload.sshSessionId)
+          if (!currentSession) { watcher.close(); return }
+          uploading = true
+          log.info('[sftp] Re-uploading edited file: %s', payload.remotePath)
+          currentSession.sftpUpload(localPath, payload.remotePath, () => {}).then(() => {
+            log.info('[sftp] Edit re-upload completed: %s', payload.remotePath)
+          }).catch((err) => {
+            const msg = (err as Error).message
+            log.error('[sftp] Edit re-upload failed: %s', msg)
+            if (!sender.isDestroyed()) {
+              sender.send(IPC.SFTP.EDIT_SAVE_ERROR, { remotePath: payload.remotePath, error: msg })
+            }
+          }).finally(() => { uploading = false })
+        }, 500)
+      })
+
+      const cleanup = (): void => {
+        watcher.close()
+        try { fs.unlinkSync(localPath) } catch { /* already deleted */ }
+      }
+
+      setTimeout(cleanup, 3_600_000)
+
+      return { success: true }
     },
   )
 }

@@ -180,6 +180,15 @@ const api: ElectronAPI = {
     upload: (sshSessionId: string, localPath: string, remotePath: string): Promise<IpcResult<{ transferId: string }>> =>
       ipcRenderer.invoke(IPC.SFTP.UPLOAD, { sshSessionId, localPath, remotePath }),
 
+    editRemote: (sshSessionId: string, remotePath: string): Promise<IpcResult> =>
+      ipcRenderer.invoke(IPC.SFTP.EDIT_REMOTE, { sshSessionId, remotePath }),
+
+    onEditSaveError: (cb: (data: { remotePath: string; error: string }) => void): (() => void) => {
+      const handler = (_e: IpcRendererEvent, data: { remotePath: string; error: string }): void => cb(data)
+      ipcRenderer.on(IPC.SFTP.EDIT_SAVE_ERROR, handler)
+      return () => ipcRenderer.removeListener(IPC.SFTP.EDIT_SAVE_ERROR, handler)
+    },
+
     onTransferProgress: (cb: (progress: TransferProgress) => void): (() => void) => {
       const handler = (_e: IpcRendererEvent, progress: TransferProgress): void => cb(progress)
       ipcRenderer.on(IPC.SFTP.TRANSFER_PROGRESS, handler)

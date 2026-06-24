@@ -96,6 +96,7 @@ export default function TabBar({
             key={tab.sshSessionId}
             className={`${styles.tab} ${tab.sshSessionId === activeTabId ? styles.active : ''}`}
             onClick={() => onSelect(tab.sshSessionId)}
+            onAuxClick={(e) => { if (e.button === 1) { e.preventDefault(); onClose(tab.sshSessionId) } }}
             onContextMenu={(e) => handleContextMenu(e, tab.sshSessionId)}
             title={tab.label}
           >

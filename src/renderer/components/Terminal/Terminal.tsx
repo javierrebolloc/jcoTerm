@@ -10,6 +10,7 @@ export type SplitCount = 0 | 2 | 4 | 8
 interface TerminalProps {
   tabs: Tab[]
   activeTabId: string | null
+  fitKey: number
   splitCount: SplitCount
   multiExec: boolean
   multiExecExcluded: Set<string>
@@ -32,6 +33,7 @@ interface TerminalProps {
 export default function Terminal({
   tabs,
   activeTabId,
+  fitKey,
   splitCount,
   multiExec,
   multiExecExcluded,
@@ -69,17 +71,17 @@ export default function Terminal({
   useEffect(() => {
     if (!inSplitMode) { setSplitAssignments([]); return }
     setSplitAssignments((prev) => {
-      const validPrev = prev.filter((id) => tabs.some((t) => t.sshSessionId === id))
-      if (validPrev.length >= splitCount) return validPrev.slice(0, splitCount)
-      const used = new Set(validPrev)
+      const validPrev = prev.map((id) => (id && tabs.some((t) => t.sshSessionId === id) ? id : ''))
+      const result = validPrev.length >= splitCount
+        ? validPrev.slice(0, splitCount)
+        : [...validPrev, ...Array(splitCount - validPrev.length).fill('') as string[]]
+      const used = new Set(result.filter(Boolean))
       const available = tabs.filter((t) => !used.has(t.sshSessionId))
-      const result = [...validPrev]
-      for (const t of available) {
-        if (result.length >= splitCount) break
-        result.push(t.sshSessionId)
-      }
-      while (result.length < splitCount && tabs.length > 0) {
-        result.push(tabs[0].sshSessionId)
+      let ai = 0
+      for (let i = 0; i < result.length; i++) {
+        if (!result[i] && ai < available.length) {
+          result[i] = available[ai++].sshSessionId
+        }
       }
       return result
     })
@@ -88,6 +90,10 @@ export default function Terminal({
   const handleCellAssign = useCallback((cellIndex: number, sshSessionId: string): void => {
     setSplitAssignments((prev) => {
       const next = [...prev]
+      if (sshSessionId === '') {
+        next[cellIndex] = ''
+        return next
+      }
       const otherIdx = next.indexOf(sshSessionId)
       if (otherIdx !== -1 && otherIdx !== cellIndex) {
         next[otherIdx] = next[cellIndex]
@@ -98,10 +104,10 @@ export default function Terminal({
   }, [])
 
   const multiExecTargets = inSplitMode && multiExec
-    ? splitAssignments.filter((id) => !multiExecExcluded.has(id))
+    ? splitAssignments.filter((id) => id && !multiExecExcluded.has(id))
     : []
 
-  if (tabs.length === 0) {
+  if (tabs.length === 0 && !inSplitMode) {
     return (
       <div className={styles.wrapper}>
         <div className={styles.empty}>
@@ -132,6 +138,29 @@ export default function Terminal({
         className={inSplitMode ? styles.splitGrid : styles.panesContainer}
         data-count={inSplitMode ? String(splitCount) : undefined}
       >
+        {/* Empty cell placeholders for split slots without a session */}
+        {inSplitMode && splitAssignments.map((assignedId, cellIdx) => {
+          if (assignedId) return null
+          return (
+            <div key={`empty-${cellIdx}`} className={styles.splitCell} style={{ order: cellIdx }}>
+              <div className={styles.splitCellHeader}>
+                <select
+                  className={styles.splitSelect}
+                  value=""
+                  onChange={(e) => handleCellAssign(cellIdx, e.target.value)}
+                >
+                  <option value="">{t('terminal.emptyCell')}</option>
+                  {tabs.map((t) => (
+                    <option key={t.sshSessionId} value={t.sshSessionId}>{t.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div className={styles.emptyCell}>
+                <span className={styles.emptyCellHint}>{t('terminal.emptyCellHint')}</span>
+              </div>
+            </div>
+          )
+        })}
         {tabs.map((tab) => {
           const cellIdx = inSplitMode ? splitAssignments.indexOf(tab.sshSessionId) : -1
           const isVisibleSplit = inSplitMode && cellIdx !== -1
@@ -156,6 +185,7 @@ export default function Terminal({
                     onChange={(e) => handleCellAssign(cellIdx, e.target.value)}
                     onClick={(e) => e.stopPropagation()}
                   >
+                    <option value="">{t('terminal.emptyCell')}</option>
                     {tabs.map((t) => (
                       <option key={t.sshSessionId} value={t.sshSessionId}>
                         {t.label}
@@ -177,6 +207,7 @@ export default function Terminal({
                 sshSessionId={tab.sshSessionId}
                 label={tab.label}
                 isActive={isActive}
+                fitKey={fitKey}
                 scrollback={scrollback}
                 fontSize={fontSize}
                 fontFamily={fontFamily}

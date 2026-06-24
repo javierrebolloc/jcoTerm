@@ -47,6 +47,8 @@ export const IPC = {
     DOWNLOAD: 'sftp:download',
     UPLOAD: 'sftp:upload',
     TRANSFER_PROGRESS: 'sftp:transferProgress',
+    EDIT_REMOTE: 'sftp:editRemote',
+    EDIT_SAVE_ERROR: 'sftp:editSaveError',
   },
   LOCAL: {
     LIST_DIR: 'local:listDir',

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import type { SavedSessionWithStatus } from '../../../shared/types'
 import { useTranslation } from '../../hooks/useTranslation'
 import styles from './SessionItem.module.css'
@@ -10,6 +10,7 @@ interface SessionItemProps {
   onConnect: (session: SavedSessionWithStatus) => void
   onEdit: (session: SavedSessionWithStatus) => void
   onDelete: (id: string, name: string) => void
+  onReorder?: (draggedId: string, targetId: string, position: 'before' | 'after') => void
 }
 
 export default function SessionItem({
@@ -19,13 +20,17 @@ export default function SessionItem({
   onConnect,
   onEdit,
   onDelete,
+  onReorder,
 }: SessionItemProps): JSX.Element {
   const [dragging, setDragging] = useState(false)
+  const [dropIndicator, setDropIndicator] = useState<'before' | 'after' | null>(null)
+  const itemRef = useRef<HTMLDivElement>(null)
   const { t } = useTranslation()
 
   return (
     <div
-      className={`${styles.item} ${dragging ? styles.dragging : ''} ${connecting ? styles.connecting : ''} ${active ? styles.active : ''}`}
+      ref={itemRef}
+      className={`${styles.item} ${dragging ? styles.dragging : ''} ${connecting ? styles.connecting : ''} ${active ? styles.active : ''} ${dropIndicator === 'before' ? styles.dropBefore : ''} ${dropIndicator === 'after' ? styles.dropAfter : ''}`}
       draggable={!connecting}
       onDragStart={(e) => {
         e.dataTransfer.setData('session-id', session.id)
@@ -33,6 +38,27 @@ export default function SessionItem({
         setDragging(true)
       }}
       onDragEnd={() => setDragging(false)}
+      onDragOver={(e) => {
+        const draggedId = e.dataTransfer.types.includes('session-id') ? true : false
+        if (!draggedId || !onReorder) return
+        e.preventDefault()
+        e.stopPropagation()
+        e.dataTransfer.dropEffect = 'move'
+        const rect = itemRef.current?.getBoundingClientRect()
+        if (rect) {
+          setDropIndicator(e.clientY < rect.top + rect.height / 2 ? 'before' : 'after')
+        }
+      }}
+      onDragLeave={() => setDropIndicator(null)}
+      onDrop={(e) => {
+        const draggedId = e.dataTransfer.getData('session-id')
+        if (draggedId && onReorder && draggedId !== session.id && dropIndicator) {
+          e.preventDefault()
+          e.stopPropagation()
+          onReorder(draggedId, session.id, dropIndicator)
+        }
+        setDropIndicator(null)
+      }}
       onDoubleClick={() => !connecting && onConnect(session)}
       onContextMenu={(e) => e.stopPropagation()}
       title={connecting ? t('session.connecting') : t('session.tooltip', { user: session.username, host: session.host, port: session.port })}

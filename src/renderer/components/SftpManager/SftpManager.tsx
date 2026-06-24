@@ -141,6 +141,16 @@ export default function SftpManager({ sessions }: SftpManagerProps): JSX.Element
     })()
   }, [loadLocalDir])
 
+  // ── Edit save errors ───────────────────────────────────────────────────────
+
+  useEffect(() => {
+    const cleanup = window.electronAPI.sftp.onEditSaveError(({ remotePath, error }) => {
+      const fileName = remotePath.split('/').pop() ?? remotePath
+      setErrorToast(t('sftp.editSaveError', { fileName, error }))
+    })
+    return cleanup
+  }, [t])
+
   // ── Transfer progress ──────────────────────────────────────────────────────
 
   useEffect(() => {
@@ -302,6 +312,14 @@ export default function SftpManager({ sessions }: SftpManagerProps): JSX.Element
     if (result.success) void loadRemoteDir(activeTab.id, activeTab.sshSessionId, activeTab.path)
   }, [activeTab, loadRemoteDir])
 
+  const handleEditRemote = useCallback(async (name: string): Promise<void> => {
+    if (!activeTab) return
+    const remotePath = remoteJoin(activeTab.path, name)
+    rlog('info', 'Edit remote: %s', remotePath)
+    const result = await window.electronAPI.sftp.editRemote(activeTab.sshSessionId, remotePath)
+    if (!result.success) setErrorToast(result.error ?? 'Edit failed')
+  }, [activeTab])
+
   const handleChmodOpen = useCallback(async (name: string): Promise<void> => {
     if (!activeTab) return
     const result = await window.electronAPI.sftp.stat(activeTab.sshSessionId, remoteJoin(activeTab.path, name))
@@ -434,6 +452,7 @@ export default function SftpManager({ sessions }: SftpManagerProps): JSX.Element
             onDelete={(name) => void handleDelete('remote', name)}
             onRename={(o, n) => void handleRename('remote', o, n)}
             onDownload={connectedSessionId ? () => void handleDownload() : undefined}
+            onEdit={connectedSessionId ? (name) => void handleEditRemote(name) : undefined}
             onChmod={(name) => void handleChmodOpen(name)}
             onFileDrop={connectedSessionId ? (d) => void handleDropOnRemote(d) : undefined}
           />

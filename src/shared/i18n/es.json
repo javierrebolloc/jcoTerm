@@ -65,6 +65,8 @@
   "terminal.emptyHint": "Conecta un servidor desde el panel lateral.",
   "terminal.disconnect": "Desconectar",
   "terminal.sessionClosed": "[Sesión cerrada]",
+  "terminal.emptyCell": "-- Vacío --",
+  "terminal.emptyCellHint": "Sin sesión asignada",
 
   "tabBar.close": "Cerrar",
   "tabBar.clone": "Clonar",
@@ -133,6 +135,8 @@
   "sftp.context.newFolder": "Nueva carpeta",
   "sftp.context.downloadN": "Descargar ({count})",
   "sftp.context.uploadN": "Subir ({count})",
+  "sftp.context.edit": "Editar",
+  "sftp.editSaveError": "Error al guardar {fileName}: {error}",
   "sftp.context.permissions": "Permisos",
   "sftp.context.deleteN": "Eliminar ({count})",
   "sftp.table.name": "Nombre",
@@ -229,6 +233,7 @@
   "lock.create": "Crear contraseña",
   "lock.mismatch": "Las contraseñas no coinciden",
   "lock.tooShort": "Mínimo 4 caracteres",
+  "lock.close": "Cerrar aplicación",
 
   "settings.connections.export": "Exportar sesiones",
   "settings.connections.import": "Importar sesiones",

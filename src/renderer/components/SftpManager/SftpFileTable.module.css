@@ -21,6 +21,7 @@
 }
 
 .headerCell {
+  position: relative;
   padding: var(--space-xs) var(--space-sm);
   text-align: left;
   font-size: var(--font-size-xs);
@@ -102,6 +103,24 @@
   font-family: var(--font-mono);
   font-size: var(--font-size-xs);
   color: var(--color-text-muted);
+}
+
+/* ── Resize handle ── */
+
+.resizeHandle {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  cursor: col-resize;
+  z-index: 2;
+  background: var(--color-border);
+}
+
+.resizeHandle:hover,
+.resizeHandle:active {
+  background: var(--color-accent);
 }
 
 /* ── Name styles ── */
